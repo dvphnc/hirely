@@ -50,13 +50,16 @@ const Dashboard = () => {
     setRecentHires(recentlyHired);
   }, []);
 
+  // Extract user name from user_metadata or fallback to email
+  const userName = user?.user_metadata?.name || user?.email;
+
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold">Dashboard</h2>
           <p className="text-muted-foreground">
-            Welcome back, {user?.name || user?.email}!
+            Welcome back, {userName}!
           </p>
         </div>
       </div>

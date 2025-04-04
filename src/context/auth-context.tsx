@@ -101,10 +101,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (data.user) {
-        sonnerToast.success(
-          "Account created",
-          "Check your email for the confirmation link."
-        );
+        // Fix: Use the correct format for sonner toast
+        sonnerToast.success("Account created", {
+          description: "Check your email for the confirmation link."
+        });
         return true;
       }
       return false;

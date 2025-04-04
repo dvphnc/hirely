@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -66,6 +67,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
+  // Extract user name from user_metadata or fallback to email
+  const userName = user?.user_metadata?.name || user?.email;
+
   return (
     <div className="flex h-screen">
       {sidebarOpen && (
@@ -119,7 +123,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-white">
-                  {user?.user_metadata?.name || user?.email}
+                  {userName}
                 </span>
                 <span className="text-xs text-white/70">
                   {user?.email}
@@ -156,7 +160,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Avatar className="h-8 w-8">
               <AvatarImage src="" />
               <AvatarFallback className="bg-primary text-white">
-                {user?.name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+                {user?.email?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           </div>
