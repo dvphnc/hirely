@@ -63,9 +63,15 @@ const Jobs = () => {
   // Create job mutation - Fixed to ensure jobcode is required
   const createJobMutation = useMutation({
     mutationFn: async (newJob: JobFormValues) => {
+      // Explicitly ensuring jobcode is required by creating a new object
+      const jobToInsert = {
+        jobcode: newJob.jobcode, // This is required
+        jobdesc: newJob.jobdesc  // This is optional
+      };
+      
       const { data, error } = await supabase
         .from("job")
-        .insert(newJob) // Fixed: Pass the object directly
+        .insert(jobToInsert)
         .select();
       
       if (error) throw new Error(error.message);
@@ -84,9 +90,15 @@ const Jobs = () => {
   // Update job mutation
   const updateJobMutation = useMutation({
     mutationFn: async (job: JobFormValues) => {
+      // Ensure jobcode is required for the update operation
+      const jobToUpdate = {
+        jobcode: job.jobcode, // Required
+        jobdesc: job.jobdesc
+      };
+      
       const { data, error } = await supabase
         .from("job")
-        .update(job)
+        .update(jobToUpdate)
         .eq("jobcode", job.jobcode)
         .select();
       

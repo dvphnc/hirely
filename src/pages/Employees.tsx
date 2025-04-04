@@ -77,9 +77,20 @@ const Employees = () => {
   // Create employee mutation - Fixed to ensure empno is required
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
+      // Explicitly ensuring empno is required by creating a new object
+      const employeeToInsert = {
+        empno: newEmployee.empno, // Required
+        lastname: newEmployee.lastname,
+        firstname: newEmployee.firstname,
+        gender: newEmployee.gender,
+        birthdate: newEmployee.birthdate,
+        hiredate: newEmployee.hiredate,
+        sepdate: newEmployee.sepdate
+      };
+      
       const { data, error } = await supabase
         .from("employee")
-        .insert(newEmployee) // Fixed: Pass the object directly
+        .insert(employeeToInsert)
         .select();
       
       if (error) throw new Error(error.message);
@@ -98,9 +109,20 @@ const Employees = () => {
   // Update employee mutation
   const updateEmployeeMutation = useMutation({
     mutationFn: async (employee: EmployeeFormValues) => {
+      // Ensure empno is required for the update operation
+      const employeeToUpdate = {
+        empno: employee.empno, // Required
+        lastname: employee.lastname,
+        firstname: employee.firstname,
+        gender: employee.gender,
+        birthdate: employee.birthdate,
+        hiredate: employee.hiredate,
+        sepdate: employee.sepdate
+      };
+      
       const { data, error } = await supabase
         .from("employee")
-        .update(employee)
+        .update(employeeToUpdate)
         .eq("empno", employee.empno)
         .select();
       

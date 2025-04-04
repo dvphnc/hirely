@@ -59,12 +59,18 @@ const Departments = () => {
     },
   });
 
-  // Create department mutation - Fixed to ensure deptcode is required
+  // Create department mutation - Ensure deptcode is required
   const createDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
+      // Explicitly ensuring deptcode is required by creating a new object
+      const departmentToInsert = {
+        deptcode: newDepartment.deptcode, // This is required
+        deptname: newDepartment.deptname  // This is also required due to our schema
+      };
+      
       const { data, error } = await supabase
         .from("department")
-        .insert(newDepartment) // Fixed: Pass the object directly
+        .insert(departmentToInsert)
         .select();
       
       if (error) throw new Error(error.message);
@@ -83,9 +89,15 @@ const Departments = () => {
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (department: DepartmentFormValues) => {
+      // Ensure deptcode is required for the update operation
+      const departmentToUpdate = {
+        deptcode: department.deptcode, // Required
+        deptname: department.deptname
+      };
+      
       const { data, error } = await supabase
         .from("department")
-        .update(department)
+        .update(departmentToUpdate)
         .eq("deptcode", department.deptcode)
         .select();
       
