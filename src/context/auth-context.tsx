@@ -1,14 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
-import { users } from '../services/mockData';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -16,47 +18,59 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem('hirely_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simple mock authentication - in a real app this would call an API
     setIsLoading(true);
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      const foundUser = users.find(u => u.email === email);
-      if (foundUser && password === 'password') {
-        setUser(foundUser);
-        localStorage.setItem('hirely_user', JSON.stringify(foundUser));
-        toast({
-          title: "Logged in successfully",
-          description: `Welcome back, ${foundUser.name || foundUser.email}!`,
-        });
-        return true;
-      } else {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
         toast({
           variant: "destructive",
           title: "Login failed",
-          description: "Invalid email or password.",
+          description: error.message,
         });
         return false;
       }
-    } catch (error) {
+
+      if (data.user) {
+        toast({
+          title: "Logged in successfully",
+          description: `Welcome back, ${data.user.email}!`,
+        });
+        return true;
+      }
+      return false;
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Login error",
-        description: "An unexpected error occurred.",
+        description: error.message || "An unexpected error occurred.",
       });
       return false;
     } finally {
@@ -67,42 +81,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const userExists = users.some(u => u.email === email);
-      if (userExists) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+
+      if (error) {
         toast({
           variant: "destructive",
           title: "Sign up failed",
-          description: "Email already in use.",
+          description: error.message,
         });
         return false;
       }
-      
-      // In a real app, we would save this to a database
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name,
-        role: 'user',
-      };
-      
-      // For demo purposes, we'll just set this user as logged in
-      setUser(newUser);
-      localStorage.setItem('hirely_user', JSON.stringify(newUser));
-      
-      toast({
-        title: "Account created",
-        description: "Your account has been created successfully!",
-      });
-      return true;
-    } catch (error) {
+
+      if (data.user) {
+        sonnerToast.success(
+          "Account created",
+          "Check your email for the confirmation link."
+        );
+        return true;
+      }
+      return false;
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Sign up error",
-        description: "An unexpected error occurred.",
+        description: error.message || "An unexpected error occurred.",
       });
       return false;
     } finally {
@@ -110,17 +120,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('hirely_user');
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message || "An unexpected error occurred.",
+      });
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

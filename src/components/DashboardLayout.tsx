@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -50,8 +49,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/signin");
   };
 
@@ -69,7 +68,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="flex h-screen">
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-20 lg:hidden" 
@@ -77,7 +75,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         />
       )}
       
-      {/* Sidebar */}
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 w-64 bg-instagram-gradient flex flex-col z-30 transition-transform duration-300 lg:transform-none",
@@ -117,18 +114,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Avatar className="h-8 w-8">
                 <AvatarImage src="" />
                 <AvatarFallback className="bg-primary text-white">
-                  {user?.name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+                  {user?.email?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-white">{user?.name || user?.email}</span>
-                <span className="text-xs text-white/70">{user?.role}</span>
+                <span className="text-sm font-medium text-white">
+                  {user?.user_metadata?.name || user?.email}
+                </span>
+                <span className="text-xs text-white/70">
+                  {user?.email}
+                </span>
               </div>
             </div>
           </div>
           <Button 
             variant="outline" 
-            className="w-full border-white/20 text-white hover:bg-white/10 hover:text-white"
+            className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -137,9 +138,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </aside>
       
-      {/* Main content */}
       <div className="flex flex-col flex-1 lg:pl-64">
-        {/* Header */}
         <header className="bg-white shadow-sm z-10 py-4 px-6 flex items-center justify-between">
           <Button 
             variant="ghost" 
@@ -163,7 +162,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </header>
         
-        {/* Page content */}
         <main className="flex-1 overflow-auto bg-gray-50 p-6">
           {children}
         </main>
