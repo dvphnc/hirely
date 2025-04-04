@@ -4,12 +4,80 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/auth-context";
 
 const Settings = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [showInactive, setShowInactive] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    const savedShowInactive = localStorage.getItem('showInactive') === 'true';
+    
+    setDarkMode(savedDarkMode);
+    setShowInactive(savedShowInactive);
+    
+    // Apply dark mode if enabled
+    if (savedDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  // Function to save settings
+  const saveSettings = async () => {
+    setIsSaving(true);
+    try {
+      // Save settings to localStorage
+      localStorage.setItem('darkMode', darkMode.toString());
+      localStorage.setItem('showInactive', showInactive.toString());
+      
+      // Apply dark mode change immediately
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // Invalidate relevant queries to refresh data based on new settings
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      
+      toast.success("Settings saved successfully");
+    } catch (error) {
+      toast.error("Failed to save settings");
+      console.error("Settings save error:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle dark mode toggle
+  const handleDarkModeChange = (checked: boolean) => {
+    setDarkMode(checked);
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', checked.toString());
+  };
+
+  // Handle show inactive employees toggle
+  const handleShowInactiveChange = (checked: boolean) => {
+    setShowInactive(checked);
+    localStorage.setItem('showInactive', checked.toString());
+    queryClient.invalidateQueries({ queryKey: ["employees"] });
+  };
 
   return (
     <DashboardLayout>
@@ -64,7 +132,7 @@ const Settings = () => {
               <Switch
                 id="dark-mode"
                 checked={darkMode}
-                onCheckedChange={setDarkMode}
+                onCheckedChange={handleDarkModeChange}
               />
             </div>
             
@@ -80,7 +148,7 @@ const Settings = () => {
               <Switch
                 id="show-inactive"
                 checked={showInactive}
-                onCheckedChange={setShowInactive}
+                onCheckedChange={handleShowInactiveChange}
               />
             </div>
           </CardContent>

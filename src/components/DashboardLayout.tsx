@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,33 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Apply dark mode from localStorage on component mount and when it changes
+  useEffect(() => {
+    const applyDarkMode = () => {
+      const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+      if (savedDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+    
+    applyDarkMode();
+    
+    // Set up an event listener for darkMode changes in localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'darkMode') {
+        applyDarkMode();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
   
   const handleLogout = async () => {
     await logout();
@@ -143,7 +170,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
       
       <div className="flex flex-col flex-1 lg:pl-64">
-        <header className="bg-white shadow-sm z-10 py-4 px-6 flex items-center justify-between">
+        <header className="bg-white dark:bg-gray-800 shadow-sm z-10 py-4 px-6 flex items-center justify-between">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -166,7 +193,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </header>
         
-        <main className="flex-1 overflow-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 dark:text-white p-6">
           {children}
         </main>
       </div>

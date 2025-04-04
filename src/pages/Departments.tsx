@@ -64,7 +64,7 @@ const Departments = () => {
     mutationFn: async (newDepartment: DepartmentFormValues) => {
       const { data, error } = await supabase
         .from("department")
-        .insert([newDepartment])
+        .insert(newDepartment) // Fixed: Pass the object directly
         .select();
       
       if (error) throw new Error(error.message);

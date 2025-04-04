@@ -1,12 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Employee, Department, Job } from "@/types/supabase";
+import { Employee } from "@/types/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Form schema for employee validation
 const employeeSchema = z.object({
@@ -51,8 +52,15 @@ const Employees = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [showInactive, setShowInactive] = useState(true);
   
   const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    // Get showInactive setting from localStorage
+    const savedShowInactive = localStorage.getItem('showInactive') === 'true';
+    setShowInactive(savedShowInactive);
+  }, []);
   
   const { data: employees, isLoading, error } = useQuery({
     queryKey: ["employees"],
@@ -71,7 +79,7 @@ const Employees = () => {
     mutationFn: async (newEmployee: EmployeeFormValues) => {
       const { data, error } = await supabase
         .from("employee")
-        .insert([newEmployee])
+        .insert(newEmployee) // Fixed: Pass the object directly
         .select();
       
       if (error) throw new Error(error.message);
@@ -130,12 +138,17 @@ const Employees = () => {
   });
 
   const filteredEmployees = employees?.filter((employee) => {
+    // Filter by search term
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       employee.empno.toLowerCase().includes(searchLower) ||
       (employee.lastname && employee.lastname.toLowerCase().includes(searchLower)) ||
-      (employee.firstname && employee.firstname.toLowerCase().includes(searchLower))
-    );
+      (employee.firstname && employee.firstname.toLowerCase().includes(searchLower));
+    
+    // Filter by active/inactive status based on the showInactive setting
+    const matchesStatus = showInactive || !employee.sepdate;
+    
+    return matchesSearch && matchesStatus;
   });
 
   const formatDate = (dateString: string | null) => {
@@ -339,15 +352,30 @@ const Employees = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Employee Management</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Search by employee number, name..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mt-2">
+              <div className="relative w-full md:w-auto flex-grow">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search by employee number, name..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="show-inactive-toggle" className="text-sm font-medium">
+                  Show Inactive Employees
+                </label>
+                <Switch
+                  id="show-inactive-toggle"
+                  checked={showInactive}
+                  onCheckedChange={(checked) => {
+                    setShowInactive(checked);
+                    localStorage.setItem('showInactive', checked.toString());
+                  }}
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent>

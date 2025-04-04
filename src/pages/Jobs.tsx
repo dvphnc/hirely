@@ -65,7 +65,7 @@ const Jobs = () => {
     mutationFn: async (newJob: JobFormValues) => {
       const { data, error } = await supabase
         .from("job")
-        .insert([newJob])
+        .insert(newJob) // Fixed: Pass the object directly
         .select();
       
       if (error) throw new Error(error.message);
