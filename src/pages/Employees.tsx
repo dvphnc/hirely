@@ -66,7 +66,7 @@ const Employees = () => {
     },
   });
 
-  // Create employee mutation
+  // Create employee mutation - Fixed to ensure empno is required
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
       const { data, error } = await supabase

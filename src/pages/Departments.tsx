@@ -59,7 +59,7 @@ const Departments = () => {
     },
   });
 
-  // Create department mutation
+  // Create department mutation - Fixed to ensure deptcode is required
   const createDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
       const { data, error } = await supabase

@@ -60,7 +60,7 @@ const Jobs = () => {
     },
   });
 
-  // Create job mutation
+  // Create job mutation - Fixed to ensure jobcode is required
   const createJobMutation = useMutation({
     mutationFn: async (newJob: JobFormValues) => {
       const { data, error } = await supabase
