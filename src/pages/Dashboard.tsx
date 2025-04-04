@@ -5,6 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { employees, jobHistory, departments, jobs } from "@/services/mockData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from "@/context/auth-context";
+import { Users, Briefcase, Building, Settings } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
