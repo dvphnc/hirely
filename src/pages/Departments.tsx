@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Department } from "@/types/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -15,10 +15,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Form schema for department validation
+const departmentSchema = z.object({
+  deptcode: z.string().min(1, "Department code is required"),
+  deptname: z.string().min(1, "Department name is required"),
+});
+
+type DepartmentFormValues = z.infer<typeof departmentSchema>;
 
 const Departments = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
+  
+  const queryClient = useQueryClient();
   
   const { data: departments, isLoading, error } = useQuery({
     queryKey: ["departments"],
@@ -32,6 +59,69 @@ const Departments = () => {
     },
   });
 
+  // Create department mutation
+  const createDepartmentMutation = useMutation({
+    mutationFn: async (newDepartment: DepartmentFormValues) => {
+      const { data, error } = await supabase
+        .from("department")
+        .insert([newDepartment])
+        .select();
+      
+      if (error) throw new Error(error.message);
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
+      setIsAddOpen(false);
+      toast.success("Department added successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error adding department: ${error.message}`);
+    },
+  });
+
+  // Update department mutation
+  const updateDepartmentMutation = useMutation({
+    mutationFn: async (department: DepartmentFormValues) => {
+      const { data, error } = await supabase
+        .from("department")
+        .update(department)
+        .eq("deptcode", department.deptcode)
+        .select();
+      
+      if (error) throw new Error(error.message);
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
+      setIsEditOpen(false);
+      toast.success("Department updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error updating department: ${error.message}`);
+    },
+  });
+
+  // Delete department mutation
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: async (deptcode: string) => {
+      const { error } = await supabase
+        .from("department")
+        .delete()
+        .eq("deptcode", deptcode);
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
+      setIsDeleteOpen(false);
+      toast.success("Department deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error deleting department: ${error.message}`);
+    },
+  });
+
   const filteredDepartments = departments?.filter((department) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -40,14 +130,93 @@ const Departments = () => {
     );
   });
 
+  // Add Department Form
+  const addDepartmentForm = useForm<DepartmentFormValues>({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: {
+      deptcode: "",
+      deptname: "",
+    },
+  });
+
+  // Edit Department Form
+  const editDepartmentForm = useForm<DepartmentFormValues>({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: {
+      deptcode: "",
+      deptname: "",
+    },
+  });
+
+  // Handle opening the edit dialog
+  const handleEditClick = (department: Department) => {
+    setCurrentDepartment(department);
+    editDepartmentForm.reset({
+      deptcode: department.deptcode,
+      deptname: department.deptname || "",
+    });
+    setIsEditOpen(true);
+  };
+
+  // Handle opening the delete dialog
+  const handleDeleteClick = (department: Department) => {
+    setCurrentDepartment(department);
+    setIsDeleteOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Departments</h1>
-          <Button className="instagram-gradient">
-            <Plus className="mr-2 h-4 w-4" /> Add Department
-          </Button>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="instagram-gradient">
+                <Plus className="mr-2 h-4 w-4" /> Add Department
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Department</DialogTitle>
+              </DialogHeader>
+              <Form {...addDepartmentForm}>
+                <form onSubmit={addDepartmentForm.handleSubmit((data) => createDepartmentMutation.mutate(data))} className="space-y-4">
+                  <FormField
+                    control={addDepartmentForm.control}
+                    name="deptcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter department code" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={addDepartmentForm.control}
+                    name="deptname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter department name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="submit" disabled={createDepartmentMutation.isPending}>
+                      {createDepartmentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Add Department
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -89,13 +258,18 @@ const Departments = () => {
                           <TableCell>{department.deptname || "N/A"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditClick(department)}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-red-500 hover:text-red-700"
+                                onClick={() => handleDeleteClick(department)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -120,6 +294,80 @@ const Departments = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Department Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Department</DialogTitle>
+          </DialogHeader>
+          <Form {...editDepartmentForm}>
+            <form onSubmit={editDepartmentForm.handleSubmit((data) => updateDepartmentMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={editDepartmentForm.control}
+                name="deptcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter department code" {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editDepartmentForm.control}
+                name="deptname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter department name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={updateDepartmentMutation.isPending}>
+                  {updateDepartmentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Department
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Department Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Department</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Are you sure you want to delete the department <strong>{currentDepartment?.deptname}</strong>?</p>
+            <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => currentDepartment && deleteDepartmentMutation.mutate(currentDepartment.deptcode)}
+              disabled={deleteDepartmentMutation.isPending}
+            >
+              {deleteDepartmentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
