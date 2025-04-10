@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2, History } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -32,8 +31,8 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import JobHistoryDialog from "@/components/JobHistoryDialog";
 
-// Form schema for employee validation
 const employeeSchema = z.object({
   empno: z.string().min(1, "Employee number is required"),
   lastname: z.string().min(1, "Last name is required"),
@@ -51,13 +50,13 @@ const Employees = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [showInactive, setShowInactive] = useState(true);
   
   const queryClient = useQueryClient();
   
   useEffect(() => {
-    // Get showInactive setting from localStorage
     const savedShowInactive = localStorage.getItem('showInactive') === 'true';
     setShowInactive(savedShowInactive);
   }, []);
@@ -74,12 +73,10 @@ const Employees = () => {
     },
   });
 
-  // Create employee mutation - Fixed to ensure empno is required
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
-      // Explicitly ensuring empno is required by creating a new object
       const employeeToInsert = {
-        empno: newEmployee.empno, // Required
+        empno: newEmployee.empno,
         lastname: newEmployee.lastname,
         firstname: newEmployee.firstname,
         gender: newEmployee.gender,
@@ -106,12 +103,10 @@ const Employees = () => {
     },
   });
 
-  // Update employee mutation
   const updateEmployeeMutation = useMutation({
     mutationFn: async (employee: EmployeeFormValues) => {
-      // Ensure empno is required for the update operation
       const employeeToUpdate = {
-        empno: employee.empno, // Required
+        empno: employee.empno,
         lastname: employee.lastname,
         firstname: employee.firstname,
         gender: employee.gender,
@@ -139,7 +134,6 @@ const Employees = () => {
     },
   });
 
-  // Delete employee mutation
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (empno: string) => {
       const { error } = await supabase
@@ -160,14 +154,12 @@ const Employees = () => {
   });
 
   const filteredEmployees = employees?.filter((employee) => {
-    // Filter by search term
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
       employee.empno.toLowerCase().includes(searchLower) ||
       (employee.lastname && employee.lastname.toLowerCase().includes(searchLower)) ||
       (employee.firstname && employee.firstname.toLowerCase().includes(searchLower));
     
-    // Filter by active/inactive status based on the showInactive setting
     const matchesStatus = showInactive || !employee.sepdate;
     
     return matchesSearch && matchesStatus;
@@ -182,7 +174,6 @@ const Employees = () => {
     }
   };
 
-  // Add Employee Form
   const addEmployeeForm = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
@@ -196,7 +187,6 @@ const Employees = () => {
     },
   });
 
-  // Edit Employee Form
   const editEmployeeForm = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
@@ -210,7 +200,6 @@ const Employees = () => {
     },
   });
 
-  // Handle opening the edit dialog
   const handleEditClick = (employee: Employee) => {
     setCurrentEmployee(employee);
     editEmployeeForm.reset({
@@ -225,10 +214,14 @@ const Employees = () => {
     setIsEditOpen(true);
   };
 
-  // Handle opening the delete dialog
   const handleDeleteClick = (employee: Employee) => {
     setCurrentEmployee(employee);
     setIsDeleteOpen(true);
+  };
+
+  const handleJobHistoryClick = (employee: Employee) => {
+    setCurrentEmployee(employee);
+    setIsJobHistoryOpen(true);
   };
 
   return (
@@ -474,7 +467,6 @@ const Employees = () => {
         </Card>
       </div>
 
-      {/* Edit Employee Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -594,17 +586,29 @@ const Employees = () => {
                 )}
               />
               <DialogFooter>
-                <Button type="submit" disabled={updateEmployeeMutation.isPending}>
-                  {updateEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Employee
-                </Button>
+                <div className="flex w-full justify-between">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      if (currentEmployee) {
+                        handleJobHistoryClick(currentEmployee);
+                      }
+                    }}
+                  >
+                    <History className="mr-2 h-4 w-4" /> Manage Job History
+                  </Button>
+                  <Button type="submit" disabled={updateEmployeeMutation.isPending}>
+                    {updateEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Update Employee
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Employee Dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -632,6 +636,12 @@ const Employees = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <JobHistoryDialog
+        employee={currentEmployee}
+        open={isJobHistoryOpen}
+        onOpenChange={setIsJobHistoryOpen}
+      />
     </DashboardLayout>
   );
 };
