@@ -292,18 +292,20 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
-          <DialogTitle>Job History Dialog Box</DialogTitle>
+          <DialogTitle>Job History</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium text-sm">Employee Number</p>
-              <p className="text-lg">{employee?.empno || "N/A"}</p>
-            </div>
-            <div>
-              <p className="font-medium text-sm">Employee Name</p>
-              <p className="text-lg">{employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}</p>
+          <div className="bg-muted/50 p-4 rounded-md">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-medium text-sm text-muted-foreground">Employee Number</p>
+                <p className="text-lg font-semibold">{employee?.empno || "N/A"}</p>
+              </div>
+              <div>
+                <p className="font-medium text-sm text-muted-foreground">Employee Name</p>
+                <p className="text-lg font-semibold">{employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}</p>
+              </div>
             </div>
           </div>
           
@@ -344,7 +346,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-500 hover:text-red-700"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => handleDeleteClick(history)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -378,6 +380,13 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           <DialogHeader>
             <DialogTitle>Add Job History</DialogTitle>
           </DialogHeader>
+          
+          <div className="bg-muted/50 p-3 rounded-md mb-4">
+            <p className="text-sm font-medium">
+              Adding job history for: <span className="font-semibold">{employee?.lastname}, {employee?.firstname} ({employee?.empno})</span>
+            </p>
+          </div>
+          
           <Form {...addJobHistoryForm}>
             <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
               <FormField
@@ -489,6 +498,13 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           <DialogHeader>
             <DialogTitle>Edit Job History</DialogTitle>
           </DialogHeader>
+          
+          <div className="bg-muted/50 p-3 rounded-md mb-4">
+            <p className="text-sm font-medium">
+              Editing job history for: <span className="font-semibold">{employee?.lastname}, {employee?.firstname} ({employee?.empno})</span>
+            </p>
+          </div>
+          
           <Form {...editJobHistoryForm}>
             <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
               <FormField
@@ -604,11 +620,23 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               Are you sure you want to delete this job history record? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="bg-muted/50 p-3 rounded-md my-2">
+            <p className="text-sm">
+              <span className="font-medium">Employee:</span> {employee?.lastname}, {employee?.firstname} ({employee?.empno})
+            </p>
+            {currentJobHistory && (
+              <>
+                <p className="text-sm"><span className="font-medium">Job:</span> {currentJobHistory.job?.jobdesc || currentJobHistory.jobcode}</p>
+                <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(currentJobHistory.effdate)}</p>
+              </>
+            )}
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => currentJobHistory && deleteJobHistoryMutation.mutate(currentJobHistory)}
               disabled={deleteJobHistoryMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete

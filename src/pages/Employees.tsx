@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +54,7 @@ const Employees = () => {
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [showInactive, setShowInactive] = useState(true);
+  const [nextEmpNo, setNextEmpNo] = useState("");
   
   const queryClient = useQueryClient();
   
@@ -66,12 +68,40 @@ const Employees = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employee")
-        .select("*");
+        .select("*")
+        .order('empno', { ascending: true });
       
       if (error) throw new Error(error.message);
       return data as Employee[];
     },
   });
+
+  // Generate next employee number
+  useEffect(() => {
+    if (employees && employees.length > 0) {
+      // Sort employees by empno to find the highest one
+      const sortedEmployees = [...employees].sort((a, b) => {
+        return a.empno.localeCompare(b.empno);
+      });
+      
+      const lastEmpNo = sortedEmployees[sortedEmployees.length - 1].empno;
+      
+      // Check if the employee number is numeric
+      const numericPart = parseInt(lastEmpNo, 10);
+      
+      if (!isNaN(numericPart)) {
+        // Increment the numeric part and format with leading zeros
+        const nextNumber = numericPart + 1;
+        setNextEmpNo(nextNumber.toString().padStart(lastEmpNo.length, '0'));
+      } else {
+        // If not numeric, just append a number
+        setNextEmpNo(lastEmpNo + '1');
+      }
+    } else {
+      // Default employee number if no employees exist
+      setNextEmpNo("00001");
+    }
+  }, [employees]);
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
@@ -177,7 +207,7 @@ const Employees = () => {
   const addEmployeeForm = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      empno: "",
+      empno: nextEmpNo,
       lastname: "",
       firstname: "",
       gender: "",
@@ -186,6 +216,13 @@ const Employees = () => {
       sepdate: null,
     },
   });
+
+  // Update the empno field when nextEmpNo changes
+  useEffect(() => {
+    if (nextEmpNo && isAddOpen) {
+      addEmployeeForm.setValue("empno", nextEmpNo);
+    }
+  }, [nextEmpNo, isAddOpen, addEmployeeForm]);
 
   const editEmployeeForm = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -248,7 +285,7 @@ const Employees = () => {
                       <FormItem>
                         <FormLabel>Employee Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter employee number" {...field} />
+                          <Input value={field.value} onChange={field.onChange} readOnly className="bg-muted/50" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -417,7 +454,7 @@ const Employees = () => {
                   <TableBody>
                     {filteredEmployees && filteredEmployees.length > 0 ? (
                       filteredEmployees.map((employee) => (
-                        <TableRow key={employee.empno}>
+                        <TableRow key={employee.empno} className={employee.sepdate ? "bg-muted/30" : ""}>
                           <TableCell className="font-medium">{employee.empno}</TableCell>
                           <TableCell>
                             {employee.lastname}, {employee.firstname}
@@ -426,7 +463,11 @@ const Employees = () => {
                           <TableCell>{formatDate(employee.birthdate)}</TableCell>
                           <TableCell>{formatDate(employee.hiredate)}</TableCell>
                           <TableCell>
-                            {employee.sepdate ? formatDate(employee.sepdate) : "Active"}
+                            {employee.sepdate ? (
+                              <span className="text-muted-foreground">{formatDate(employee.sepdate)}</span>
+                            ) : (
+                              <span className="text-green-600 dark:text-green-400 font-medium">Active</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -440,7 +481,14 @@ const Employees = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-500 hover:text-red-700"
+                                onClick={() => handleJobHistoryClick(employee)}
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => handleDeleteClick(employee)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -481,7 +529,7 @@ const Employees = () => {
                   <FormItem>
                     <FormLabel>Employee Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter employee number" {...field} disabled />
+                      <Input placeholder="Enter employee number" {...field} disabled className="bg-muted/50" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

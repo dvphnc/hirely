@@ -35,6 +35,36 @@
 
     --radius: 0.5rem;
   }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 7.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 7.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 283 55% 60%;  /* Brighter Instagram purple for dark mode */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 353 74% 70%; /* Brighter Instagram pink for dark mode */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 75.1%;
+
+    --accent: 40 94% 75%; /* Brighter Instagram orange/yellow for dark mode */
+    --accent-foreground: 210 40% 2%;
+
+    --destructive: 0 62.8% 60.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 283 55% 60%;
+  }
 }
 
 @layer base {
@@ -45,6 +75,31 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .dark ::selection {
+    @apply bg-primary/30 text-foreground;
+  }
+
+  /* Better dark mode contrast for input fields */
+  .dark input,
+  .dark select {
+    @apply text-foreground;
+  }
+
+  /* Better dark mode text readability */
+  .dark .text-muted-foreground {
+    @apply text-neutral-300/80;
+  }
+
+  /* Enhanced table readability in dark mode */
+  .dark table thead tr th {
+    @apply bg-muted/50 text-neutral-100;
+  }
+
+  /* Better dark mode dialog contrast */
+  .dark .dialog-content {
+    @apply bg-background border-border;
+  }
 }
 
 @layer components {
@@ -54,5 +109,24 @@
   
   .instagram-gradient-hover:hover {
     @apply bg-instagram-gradient text-white transition-all duration-300;
+  }
+  
+  /* Active employee status highlight with better dark mode support */
+  .active-employee {
+    @apply text-green-600 dark:text-green-400 font-medium;
+  }
+  
+  /* Form labels with better contrast in dark mode */
+  .dark .form-label {
+    @apply text-neutral-200;
+  }
+  
+  /* Better dialog styling in dark mode */
+  .dark [data-radix-dialog-overlay] {
+    @apply bg-black/90;
+  }
+  
+  .dark [data-radix-dialog-content] {
+    @apply border-neutral-700 shadow-lg shadow-black/30;
   }
 }
