@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +39,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Form schema for job history validation
 const jobHistorySchema = z.object({
   empno: z.string().min(1, "Employee number is required"),
   jobcode: z.string().min(1, "Job code is required"),
@@ -74,7 +72,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   
   const queryClient = useQueryClient();
 
-  // Fetch job history for the current employee
   const { data: jobHistory, isLoading } = useQuery({
     queryKey: ["jobHistory", employee?.empno],
     queryFn: async () => {
@@ -100,7 +97,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     enabled: !!employee,
   });
 
-  // Fetch jobs for dropdown
   const { data: jobs } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
@@ -113,7 +109,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Fetch departments for dropdown
   const { data: departments } = useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
@@ -126,7 +121,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Add job history form
   const addJobHistoryForm = useForm<JobHistoryFormValues>({
     resolver: zodResolver(jobHistorySchema),
     defaultValues: {
@@ -138,7 +132,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Edit job history form
   const editJobHistoryForm = useForm<JobHistoryFormValues>({
     resolver: zodResolver(jobHistorySchema),
     defaultValues: {
@@ -150,14 +143,12 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Update forms when employee changes
   useEffect(() => {
     if (employee) {
       addJobHistoryForm.setValue("empno", employee.empno);
     }
   }, [employee, addJobHistoryForm]);
 
-  // Create job history mutation
   const createJobHistoryMutation = useMutation({
     mutationFn: async (newJobHistory: JobHistoryFormValues) => {
       const jobHistoryToInsert = {
@@ -186,7 +177,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Update job history mutation
   const updateJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryFormValues) => {
       const jobHistoryToUpdate = {
@@ -218,7 +208,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Delete job history mutation
   const deleteJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryWithDetails) => {
       const { error } = await supabase
@@ -240,7 +229,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Format date
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
@@ -250,7 +238,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     }
   };
 
-  // Format salary
   const formatSalary = (salary: number | null) => {
     if (salary === null) return "N/A";
     return new Intl.NumberFormat("en-US", {
@@ -260,7 +247,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     }).format(salary);
   };
 
-  // Handle edit button click
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
     setCurrentJobHistory(jobHistory);
     editJobHistoryForm.reset({
@@ -273,13 +259,11 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     setIsEditOpen(true);
   };
 
-  // Handle delete button click
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
     setCurrentJobHistory(jobHistory);
     setIsDeleteOpen(true);
   };
 
-  // Reset forms when dialog closes
   useEffect(() => {
     if (!open) {
       setIsAddOpen(false);
@@ -374,7 +358,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         </div>
       </DialogContent>
 
-      {/* Add Job History Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -492,7 +475,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         </DialogContent>
       </Dialog>
 
-      {/* Edit Job History Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -611,7 +593,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         </DialogContent>
       </Dialog>
 
-      {/* Delete Job History Dialog */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

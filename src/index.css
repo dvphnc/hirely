@@ -100,6 +100,21 @@
   .dark .dialog-content {
     @apply bg-background border-border;
   }
+  
+  /* Dark mode improvements for form labels and values */
+  .dark .form-label {
+    @apply text-neutral-200;
+  }
+  
+  .dark .employee-info {
+    @apply text-neutral-100;
+  }
+  
+  /* Dark mode form field improvements */
+  .dark form input,
+  .dark form select {
+    @apply border-neutral-700 bg-neutral-800 text-neutral-100;
+  }
 }
 
 @layer components {
@@ -128,5 +143,18 @@
   
   .dark [data-radix-dialog-content] {
     @apply border-neutral-700 shadow-lg shadow-black/30;
+  }
+  
+  /* Employee info panel styling */
+  .employee-info-panel {
+    @apply bg-muted/50 p-4 rounded-md;
+  }
+  
+  .employee-info-label {
+    @apply font-medium text-sm text-muted-foreground;
+  }
+  
+  .employee-info-value {
+    @apply text-lg font-semibold;
   }
 }

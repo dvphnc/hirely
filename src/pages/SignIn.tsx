@@ -83,12 +83,6 @@ const SignIn = () => {
                   Sign Up
                 </Link>
               </div>
-              
-              <div className="text-center text-xs text-muted-foreground">
-                <p className="mb-1">Demo Credentials:</p>
-                <p>Admin: admin@hirely.com / password</p>
-                <p>User: user@hirely.com / password</p>
-              </div>
             </CardFooter>
           </form>
         </Card>
