@@ -273,22 +273,24 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px]">
-        <DialogHeader>
-          <DialogTitle>Job History</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Job History</DialogTitle>
+          </DialogHeader>
+          
           <div className="bg-muted/50 p-4 rounded-md">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="font-medium text-sm text-muted-foreground">Employee Number</p>
-                <p className="text-lg font-semibold">{employee?.empno || "N/A"}</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+                <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
               </div>
               <div>
-                <p className="font-medium text-sm text-muted-foreground">Employee Name</p>
-                <p className="text-lg font-semibold">{employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+                <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+                  {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+                </p>
               </div>
             </div>
           </div>
@@ -355,277 +357,295 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>
           </div>
-        </div>
-      </DialogContent>
-
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Job History</DialogTitle>
-          </DialogHeader>
-          
-          <div className="bg-muted/50 p-3 rounded-md mb-4">
-            <p className="text-sm font-medium">
-              Adding job history for: <span className="font-semibold">{employee?.lastname}, {employee?.firstname} ({employee?.empno})</span>
-            </p>
-          </div>
-          
-          <Form {...addJobHistoryForm}>
-            <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={addJobHistoryForm.control}
-                name="jobcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a job" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {jobs?.map((job) => (
-                          <SelectItem key={job.jobcode} value={job.jobcode}>
-                            {job.jobdesc || job.jobcode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={addJobHistoryForm.control}
-                name="deptcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments?.map((dept) => (
-                          <SelectItem key={dept.deptcode} value={dept.deptcode}>
-                            {dept.deptname || dept.deptcode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={addJobHistoryForm.control}
-                name="effdate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Effective Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={addJobHistoryForm.control}
-                name="salary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Salary</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createJobHistoryMutation.isPending}>
-                  {createJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Add
-                </Button>
-              </div>
-            </form>
-          </Form>
         </DialogContent>
-      </Dialog>
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Job History</DialogTitle>
-          </DialogHeader>
-          
-          <div className="bg-muted/50 p-3 rounded-md mb-4">
-            <p className="text-sm font-medium">
-              Editing job history for: <span className="font-semibold">{employee?.lastname}, {employee?.firstname} ({employee?.empno})</span>
-            </p>
-          </div>
-          
-          <Form {...editJobHistoryForm}>
-            <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={editJobHistoryForm.control}
-                name="jobcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a job" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {jobs?.map((job) => (
-                          <SelectItem key={job.jobcode} value={job.jobcode}>
-                            {job.jobdesc || job.jobcode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={editJobHistoryForm.control}
-                name="deptcode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments?.map((dept) => (
-                          <SelectItem key={dept.deptcode} value={dept.deptcode}>
-                            {dept.deptname || dept.deptcode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={editJobHistoryForm.control}
-                name="effdate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Effective Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={editJobHistoryForm.control}
-                name="salary"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Salary</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updateJobHistoryMutation.isPending}>
-                  {updateJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update
-                </Button>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add Job History</DialogTitle>
+            </DialogHeader>
+            
+            <div className="bg-muted/50 p-3 rounded-md mb-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+                    {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+                  </p>
+                </div>
               </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+            </div>
+            
+            <Form {...addJobHistoryForm}>
+              <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={addJobHistoryForm.control}
+                  name="jobcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a job" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {jobs?.map((job) => (
+                            <SelectItem key={job.jobcode} value={job.jobcode}>
+                              {job.jobdesc || job.jobcode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={addJobHistoryForm.control}
+                  name="deptcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {departments?.map((dept) => (
+                            <SelectItem key={dept.deptcode} value={dept.deptcode}>
+                              {dept.deptname || dept.deptcode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={addJobHistoryForm.control}
+                  name="effdate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Effective Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={addJobHistoryForm.control}
+                  name="salary"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salary</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createJobHistoryMutation.isPending}>
+                    {createJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Add
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
 
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Job History</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this job history record? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="bg-muted/50 p-3 rounded-md my-2">
-            <p className="text-sm">
-              <span className="font-medium">Employee:</span> {employee?.lastname}, {employee?.firstname} ({employee?.empno})
-            </p>
-            {currentJobHistory && (
-              <>
-                <p className="text-sm"><span className="font-medium">Job:</span> {currentJobHistory.job?.jobdesc || currentJobHistory.jobcode}</p>
-                <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(currentJobHistory.effdate)}</p>
-              </>
-            )}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => currentJobHistory && deleteJobHistoryMutation.mutate(currentJobHistory)}
-              disabled={deleteJobHistoryMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Dialog>
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Job History</DialogTitle>
+            </DialogHeader>
+            
+            <div className="bg-muted/50 p-3 rounded-md mb-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+                    {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <Form {...editJobHistoryForm}>
+              <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={editJobHistoryForm.control}
+                  name="jobcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        disabled
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a job" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {jobs?.map((job) => (
+                            <SelectItem key={job.jobcode} value={job.jobcode}>
+                              {job.jobdesc || job.jobcode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editJobHistoryForm.control}
+                  name="deptcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {departments?.map((dept) => (
+                            <SelectItem key={dept.deptcode} value={dept.deptcode}>
+                              {dept.deptname || dept.deptcode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editJobHistoryForm.control}
+                  name="effdate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Effective Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} disabled />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editJobHistoryForm.control}
+                  name="salary"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Salary</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updateJobHistoryMutation.isPending}>
+                    {updateJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Update
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Job History</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this job history record? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="bg-muted/50 p-3 rounded-md my-2">
+              <p className="text-sm">
+                <span className="font-medium">Employee:</span> {employee?.lastname}, {employee?.firstname} ({employee?.empno})
+              </p>
+              {currentJobHistory && (
+                <>
+                  <p className="text-sm"><span className="font-medium">Job:</span> {currentJobHistory.job?.jobdesc || currentJobHistory.jobcode}</p>
+                  <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(currentJobHistory.effdate)}</p>
+                </>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => currentJobHistory && deleteJobHistoryMutation.mutate(currentJobHistory)}
+                disabled={deleteJobHistoryMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Dialog>
+    </>
   );
 };
 
