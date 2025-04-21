@@ -1,9 +1,8 @@
-
 import { format, parseISO } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
-import { JobHistoryWithDetails } from "./JobHistoryDialog";
+import { JobHistoryWithDetails } from "./JobHistoryTypes";
 
 interface Props {
   jobHistory: JobHistoryWithDetails[] | undefined;
@@ -20,6 +19,7 @@ function formatDate(dateString: string | null) {
     return dateString;
   }
 }
+
 function formatSalary(salary: number | null) {
   if (salary === null) return "N/A";
   return new Intl.NumberFormat("en-US", {

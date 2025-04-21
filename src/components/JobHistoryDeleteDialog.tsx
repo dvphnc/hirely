@@ -1,8 +1,7 @@
-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
 import { Employee } from "@/types/supabase";
-import { JobHistoryWithDetails } from "./JobHistoryDialog";
+import { JobHistoryWithDetails } from "./JobHistoryTypes";
 
 function formatDate(dateString: string | null) {
   if (!dateString) return "N/A";
