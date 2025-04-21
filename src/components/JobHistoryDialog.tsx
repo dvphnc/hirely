@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Employee, JobHistory, Department, Job } from "@/types/supabase";
@@ -65,7 +64,6 @@ interface JobHistoryWithDetails extends JobHistory {
   };
 }
 
-// Create a reusable component for employee information display
 const EmployeeInfoDisplay = ({ employee }: { employee: Employee | null }) => (
   <div className="bg-muted/50 p-4 rounded-md">
     <div className="grid grid-cols-2 gap-4">
@@ -88,6 +86,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentJobHistory, setCurrentJobHistory] = useState<JobHistoryWithDetails | null>(null);
+  const [removingKey, setRemovingKey] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -140,7 +139,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Setup real-time subscription for job history changes
   useEffect(() => {
     if (!employee?.empno) return;
     
@@ -154,13 +152,24 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           table: 'jobhistory',
           filter: `empno=eq.${employee.empno}`
         },
-        () => {
-          // Refresh data when changes happen
-          queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const deleted = payload.old;
+            const rowKey = `${deleted.empno}-${deleted.jobcode}-${deleted.effdate}`;
+            setRemovingKey(rowKey);
+
+            setTimeout(() => {
+              setRemovingKey(null);
+              queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
+            }, 300);
+          } else {
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
+            }, 100);
+          }
         }
       )
       .subscribe();
-      
     return () => {
       supabase.removeChannel(channel);
     };
@@ -253,7 +262,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
-  // Improved deletion mutation with better state handling and optimistic updates
   const deleteJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryWithDetails) => {
       const { error } = await supabase
@@ -267,13 +275,8 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
       return { success: true };
     },
     onMutate: async (jobHistoryToDelete) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["jobHistory", employee?.empno] });
-      
-      // Snapshot the previous value
       const previousJobHistory = queryClient.getQueryData(["jobHistory", employee?.empno]);
-      
-      // Optimistically update the UI by removing the item
       if (previousJobHistory) {
         queryClient.setQueryData(
           ["jobHistory", employee?.empno],
@@ -287,30 +290,21 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             ) : []
         );
       }
-      
-      // Close the delete dialog immediately
       setIsDeleteOpen(false);
-      
-      // Return a context object with the snapshot
       return { previousJobHistory };
     },
     onSuccess: () => {
-      // Reset state and show success message
       setCurrentJobHistory(null);
       toast.success("Job history deleted successfully");
-      
-      // Refresh related queries
       queryClient.invalidateQueries({ queryKey: ["employees"] });
     },
     onError: (error, _, context) => {
-      // If the mutation fails, roll back to the previous value
       if (context?.previousJobHistory) {
         queryClient.setQueryData(["jobHistory", employee?.empno], context.previousJobHistory);
       }
       toast.error(`Error deleting job history: ${error.message}`);
     },
     onSettled: () => {
-      // Always make sure we're up to date after the mutation settles
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
     },
   });
@@ -350,17 +344,14 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     setIsDeleteOpen(true);
   };
 
-  // Cleanup function to reset state when dialog closes
   useEffect(() => {
     if (!open) {
-      // Small delay to ensure animations complete before state reset
       const timeout = setTimeout(() => {
         setIsAddOpen(false);
         setIsEditOpen(false);
         setIsDeleteOpen(false);
         setCurrentJobHistory(null);
       }, 300);
-      
       return () => clearTimeout(timeout);
     }
   }, [open]);
@@ -394,33 +385,40 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
                     </TableCell>
                   </TableRow>
                 ) : jobHistory && jobHistory.length > 0 ? (
-                  jobHistory.map((history) => (
-                    <TableRow key={`${history.empno}-${history.jobcode}-${history.effdate}`}>
-                      <TableCell>{history.job?.jobdesc || history.jobcode}</TableCell>
-                      <TableCell>{formatDate(history.effdate)}</TableCell>
-                      <TableCell>{history.department?.deptname || history.deptcode || "N/A"}</TableCell>
-                      <TableCell>{formatSalary(history.salary)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditClick(history)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteClick(history)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  jobHistory.map((history) => {
+                    const rowKey = `${history.empno}-${history.jobcode}-${history.effdate}`;
+                    const isRemoving = rowKey === removingKey;
+                    return (
+                      <TableRow
+                        key={rowKey}
+                        className={isRemoving ? "transition-opacity duration-300 opacity-0 pointer-events-none" : "transition-opacity duration-300"}
+                      >
+                        <TableCell>{history.job?.jobdesc || history.jobcode}</TableCell>
+                        <TableCell>{formatDate(history.effdate)}</TableCell>
+                        <TableCell>{history.department?.deptname || history.deptcode || "N/A"}</TableCell>
+                        <TableCell>{formatSalary(history.salary)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditClick(history)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteClick(history)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
