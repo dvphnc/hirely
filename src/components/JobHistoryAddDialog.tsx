@@ -1,4 +1,3 @@
-
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,17 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import EmployeeInfoDisplay from "./EmployeeInfoDisplay";
 import { Job, Department } from "@/types/supabase";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-const jobHistorySchema = z.object({
-  empno: z.string().min(1, "Employee number is required"),
-  jobcode: z.string().min(1, "Job code is required"),
-  deptcode: z.string().min(1, "Department code is required"),
-  effdate: z.string().min(1, "Effective date is required"),
-  salary: z.coerce.number().min(0, "Salary must be a positive number"),
-});
-type JobHistoryFormValues = z.infer<typeof jobHistorySchema>;
+import { JobHistoryFormValues } from "./JobHistoryTypes";
 
 interface Props {
   open: boolean;
