@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,32 +75,47 @@ const Employees = () => {
     },
   });
 
-  // Generate next employee number
   useEffect(() => {
     if (employees && employees.length > 0) {
-      // Sort employees by empno to find the highest one
       const sortedEmployees = [...employees].sort((a, b) => {
         return a.empno.localeCompare(b.empno);
       });
       
       const lastEmpNo = sortedEmployees[sortedEmployees.length - 1].empno;
       
-      // Check if the employee number is numeric
       const numericPart = parseInt(lastEmpNo, 10);
       
       if (!isNaN(numericPart)) {
-        // Increment the numeric part and format with leading zeros
         const nextNumber = numericPart + 1;
         setNextEmpNo(nextNumber.toString().padStart(lastEmpNo.length, '0'));
       } else {
-        // If not numeric, just append a number
         setNextEmpNo(lastEmpNo + '1');
       }
     } else {
-      // Default employee number if no employees exist
       setNextEmpNo("00001");
     }
   }, [employees]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('employee-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employee'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
@@ -217,7 +231,6 @@ const Employees = () => {
     },
   });
 
-  // Update the empno field when nextEmpNo changes
   useEffect(() => {
     if (nextEmpNo && isAddOpen) {
       addEmployeeForm.setValue("empno", nextEmpNo);
@@ -675,7 +688,11 @@ const Employees = () => {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={() => currentEmployee && deleteEmployeeMutation.mutate(currentEmployee.empno)}
+              onClick={() => {
+                if (currentEmployee) {
+                  deleteEmployeeMutation.mutate(currentEmployee.empno);
+                }
+              }}
               disabled={deleteEmployeeMutation.isPending}
             >
               {deleteEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +122,32 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
+  // Setup real-time subscription for job history changes
+  useEffect(() => {
+    if (!employee?.empno) return;
+    
+    const channel = supabase
+      .channel('job-history-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobhistory',
+          filter: `empno=eq.${employee.empno}`
+        },
+        () => {
+          // Refresh data when changes happen
+          queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [employee?.empno, queryClient]);
+
   const addJobHistoryForm = useForm<JobHistoryFormValues>({
     resolver: zodResolver(jobHistorySchema),
     defaultValues: {
@@ -218,11 +245,16 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         .eq("effdate", jobHistory.effdate);
       
       if (error) throw new Error(error.message);
+      return true;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
+      // Reset the current job history and close the dialog
+      setCurrentJobHistory(null);
       setIsDeleteOpen(false);
       toast.success("Job history deleted successfully");
+      
+      // Force refresh the data
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
     },
     onError: (error) => {
       toast.error(`Error deleting job history: ${error.message}`);
@@ -269,8 +301,27 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
       setIsAddOpen(false);
       setIsEditOpen(false);
       setIsDeleteOpen(false);
+      setCurrentJobHistory(null);
     }
   }, [open]);
+
+  // Create a consistent employee information display component
+  const EmployeeInfoDisplay = () => (
+    <div className="bg-muted/50 p-4 rounded-md">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+          <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
+        </div>
+        <div>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+          <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+            {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -280,20 +331,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             <DialogTitle>Job History</DialogTitle>
           </DialogHeader>
           
-          <div className="bg-muted/50 p-4 rounded-md">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
-                <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
-                <p className="text-lg font-semibold text-neutral-800 dark:text-white">
-                  {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
-                </p>
-              </div>
-            </div>
-          </div>
+          <EmployeeInfoDisplay />
           
           <div className="rounded-md border">
             <Table>
@@ -365,20 +403,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               <DialogTitle>Add Job History</DialogTitle>
             </DialogHeader>
             
-            <div className="bg-muted/50 p-3 rounded-md mb-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
-                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
-                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">
-                    {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <EmployeeInfoDisplay />
             
             <Form {...addJobHistoryForm}>
               <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
@@ -491,20 +516,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               <DialogTitle>Edit Job History</DialogTitle>
             </DialogHeader>
             
-            <div className="bg-muted/50 p-3 rounded-md mb-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
-                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
-                  <p className="text-lg font-semibold text-neutral-800 dark:text-white">
-                    {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <EmployeeInfoDisplay />
             
             <Form {...editJobHistoryForm}>
               <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
@@ -634,7 +646,11 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction 
-                onClick={() => currentJobHistory && deleteJobHistoryMutation.mutate(currentJobHistory)}
+                onClick={() => {
+                  if (currentJobHistory) {
+                    deleteJobHistoryMutation.mutate(currentJobHistory);
+                  }
+                }}
                 disabled={deleteJobHistoryMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
