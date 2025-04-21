@@ -1,19 +1,44 @@
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Employee, Job, Department } from "@/types/supabase";
-import { Plus, Loader2 } from "lucide-react";
+import { Employee, JobHistory, Department, Job } from "@/types/supabase";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import JobHistoryTable from "./JobHistoryTable";
-import JobHistoryAddDialog from "./JobHistoryAddDialog";
-import JobHistoryEditDialog from "./JobHistoryEditDialog";
-import JobHistoryDeleteDialog from "./JobHistoryDeleteDialog";
-import { useJobHistoryDeleteMutation } from "./useJobHistoryMutations";
-import { JobHistoryWithDetails, JobHistoryFormValues } from "./JobHistoryTypes";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const jobHistorySchema = z.object({
   empno: z.string().min(1, "Employee number is required"),
@@ -23,61 +48,72 @@ const jobHistorySchema = z.object({
   salary: z.coerce.number().min(0, "Salary must be a positive number"),
 });
 
+type JobHistoryFormValues = z.infer<typeof jobHistorySchema>;
+
 interface JobHistoryDialogProps {
   employee: Employee | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function JobHistoryDialog({ employee, open, onOpenChange }: JobHistoryDialogProps) {
+interface JobHistoryWithDetails extends JobHistory {
+  job?: {
+    jobdesc: string | null;
+  };
+  department?: {
+    deptname: string | null;
+  };
+}
+
+// Create a reusable component for employee information display
+const EmployeeInfoDisplay = ({ employee }: { employee: Employee | null }) => (
+  <div className="bg-muted/50 p-4 rounded-md">
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+        <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
+      </div>
+      <div>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+        <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+          {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProps) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentJobHistory, setCurrentJobHistory] = useState<JobHistoryWithDetails | null>(null);
+  
+  const queryClient = useQueryClient();
 
-  // Form setup
-  const addJobHistoryForm = useForm<JobHistoryFormValues>({
-    resolver: zodResolver(jobHistorySchema),
-    defaultValues: {
-      empno: employee?.empno || "",
-      jobcode: "",
-      deptcode: "",
-      effdate: "",
-      salary: 0,
-    },
-  });
-
-  const editJobHistoryForm = useForm<JobHistoryFormValues>({
-    resolver: zodResolver(jobHistorySchema),
-    defaultValues: {
-      empno: employee?.empno || "",
-      jobcode: "",
-      deptcode: "",
-      effdate: "",
-      salary: 0,
-    },
-  });
-
-  // Queries
-  const { data: jobHistory, isLoading: isJobHistoryLoading } = useQuery({
+  const { data: jobHistory, isLoading } = useQuery({
     queryKey: ["jobHistory", employee?.empno],
     queryFn: async () => {
-      if (!employee?.empno) return [];
-
+      if (!employee) return [];
+      
       const { data, error } = await supabase
         .from("jobhistory")
         .select(`
           *,
-          job:jobcode(jobcode, jobdesc),
-          department:deptcode(deptcode, deptname)
+          job:jobcode (
+            jobdesc
+          ),
+          department:deptcode (
+            deptname
+          )
         `)
         .eq("empno", employee.empno)
         .order("effdate", { ascending: false });
-
+      
       if (error) throw new Error(error.message);
       return data as JobHistoryWithDetails[];
     },
-    enabled: !!employee?.empno && open,
+    enabled: !!employee,
   });
 
   const { data: jobs } = useQuery({
@@ -85,13 +121,11 @@ export default function JobHistoryDialog({ employee, open, onOpenChange }: JobHi
     queryFn: async () => {
       const { data, error } = await supabase
         .from("job")
-        .select("*")
-        .order("jobdesc");
-
+        .select("*");
+      
       if (error) throw new Error(error.message);
       return data as Job[];
     },
-    enabled: open,
   });
 
   const { data: departments } = useQuery({
@@ -99,62 +133,204 @@ export default function JobHistoryDialog({ employee, open, onOpenChange }: JobHi
     queryFn: async () => {
       const { data, error } = await supabase
         .from("department")
-        .select("*")
-        .order("deptname");
-
+        .select("*");
+      
       if (error) throw new Error(error.message);
       return data as Department[];
     },
-    enabled: open,
   });
 
-  // Mutations
-  const addJobHistoryMutation = useMutation({
-    mutationFn: async (data: JobHistoryFormValues) => {
-      const { error } = await supabase
-        .from("jobhistory")
-        .insert(data);
+  // Setup real-time subscription for job history changes
+  useEffect(() => {
+    if (!employee?.empno) return;
+    
+    const channel = supabase
+      .channel('job-history-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobhistory',
+          filter: `empno=eq.${employee.empno}`
+        },
+        () => {
+          // Refresh data when changes happen
+          queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [employee?.empno, queryClient]);
 
+  const addJobHistoryForm = useForm<JobHistoryFormValues>({
+    resolver: zodResolver(jobHistorySchema),
+    defaultValues: {
+      empno: employee?.empno || "",
+      jobcode: "",
+      deptcode: "",
+      effdate: new Date().toISOString().split("T")[0],
+      salary: 0,
+    },
+  });
+
+  const editJobHistoryForm = useForm<JobHistoryFormValues>({
+    resolver: zodResolver(jobHistorySchema),
+    defaultValues: {
+      empno: "",
+      jobcode: "",
+      deptcode: "",
+      effdate: "",
+      salary: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (employee) {
+      addJobHistoryForm.setValue("empno", employee.empno);
+    }
+  }, [employee, addJobHistoryForm]);
+
+  const createJobHistoryMutation = useMutation({
+    mutationFn: async (newJobHistory: JobHistoryFormValues) => {
+      const jobHistoryToInsert = {
+        empno: newJobHistory.empno,
+        jobcode: newJobHistory.jobcode,
+        deptcode: newJobHistory.deptcode,
+        effdate: newJobHistory.effdate,
+        salary: newJobHistory.salary,
+      };
+      
+      const { data, error } = await supabase
+        .from("jobhistory")
+        .insert(jobHistoryToInsert)
+        .select();
+      
       if (error) throw new Error(error.message);
-      return data;
+      return data[0];
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
       setIsAddOpen(false);
-      addJobHistoryForm.reset();
+      toast.success("Job history entry added successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error adding job history: ${error.message}`);
     },
   });
 
   const updateJobHistoryMutation = useMutation({
-    mutationFn: async (data: JobHistoryFormValues) => {
-      const { error } = await supabase
+    mutationFn: async (jobHistory: JobHistoryFormValues) => {
+      const jobHistoryToUpdate = {
+        empno: jobHistory.empno,
+        jobcode: jobHistory.jobcode,
+        deptcode: jobHistory.deptcode,
+        effdate: jobHistory.effdate,
+        salary: jobHistory.salary,
+      };
+      
+      const { data, error } = await supabase
         .from("jobhistory")
-        .update({
-          deptcode: data.deptcode,
-          salary: data.salary
-        })
-        .eq("empno", data.empno)
-        .eq("jobcode", data.jobcode)
-        .eq("effdate", data.effdate);
-
+        .update(jobHistoryToUpdate)
+        .eq("empno", jobHistory.empno)
+        .eq("jobcode", jobHistory.jobcode)
+        .eq("effdate", jobHistory.effdate)
+        .select();
+      
       if (error) throw new Error(error.message);
-      return data;
+      return data[0];
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
       setIsEditOpen(false);
-      editJobHistoryForm.reset();
+      toast.success("Job history updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error updating job history: ${error.message}`);
     },
   });
 
-  // Delete mutation using the custom hook
-  const deleteJobHistoryMutation = useJobHistoryDeleteMutation(employee?.empno);
+  // Improved deletion mutation with better state handling and optimistic updates
+  const deleteJobHistoryMutation = useMutation({
+    mutationFn: async (jobHistory: JobHistoryWithDetails) => {
+      const { error } = await supabase
+        .from("jobhistory")
+        .delete()
+        .eq("empno", jobHistory.empno)
+        .eq("jobcode", jobHistory.jobcode)
+        .eq("effdate", jobHistory.effdate);
+      
+      if (error) throw new Error(error.message);
+      return { success: true };
+    },
+    onMutate: async (jobHistoryToDelete) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["jobHistory", employee?.empno] });
+      
+      // Snapshot the previous value
+      const previousJobHistory = queryClient.getQueryData(["jobHistory", employee?.empno]);
+      
+      // Optimistically update the UI by removing the item
+      if (previousJobHistory) {
+        queryClient.setQueryData(
+          ["jobHistory", employee?.empno],
+          (old: JobHistoryWithDetails[] | undefined) => 
+            old ? old.filter(
+              item => !(
+                item.empno === jobHistoryToDelete.empno && 
+                item.jobcode === jobHistoryToDelete.jobcode && 
+                item.effdate === jobHistoryToDelete.effdate
+              )
+            ) : []
+        );
+      }
+      
+      // Close the delete dialog immediately
+      setIsDeleteOpen(false);
+      
+      // Return a context object with the snapshot
+      return { previousJobHistory };
+    },
+    onSuccess: () => {
+      // Reset state and show success message
+      setCurrentJobHistory(null);
+      toast.success("Job history deleted successfully");
+      
+      // Refresh related queries
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (error, _, context) => {
+      // If the mutation fails, roll back to the previous value
+      if (context?.previousJobHistory) {
+        queryClient.setQueryData(["jobHistory", employee?.empno], context.previousJobHistory);
+      }
+      toast.error(`Error deleting job history: ${error.message}`);
+    },
+    onSettled: () => {
+      // Always make sure we're up to date after the mutation settles
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
+    },
+  });
 
-  // Handlers
-  const handleAddSubmit = (data: JobHistoryFormValues) => {
-    addJobHistoryMutation.mutate(data);
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "dd-MMM-yyyy");
+    } catch (e) {
+      return dateString;
+    }
   };
 
-  const handleEditSubmit = (data: JobHistoryFormValues) => {
-    updateJobHistoryMutation.mutate(data);
+  const formatSalary = (salary: number | null) => {
+    if (salary === null) return "N/A";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(salary);
   };
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
@@ -174,74 +350,379 @@ export default function JobHistoryDialog({ employee, open, onOpenChange }: JobHi
     setIsDeleteOpen(true);
   };
 
-  const handleDelete = () => {
-    if (currentJobHistory) {
-      deleteJobHistoryMutation.mutate(currentJobHistory);
-      setIsDeleteOpen(false);
+  // Cleanup function to reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Small delay to ensure animations complete before state reset
+      const timeout = setTimeout(() => {
+        setIsAddOpen(false);
+        setIsEditOpen(false);
+        setIsDeleteOpen(false);
+        setCurrentJobHistory(null);
+      }, 300);
+      
+      return () => clearTimeout(timeout);
     }
-  };
+  }, [open]);
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold">Job History</h2>
-          <Button onClick={() => {
-            addJobHistoryForm.reset({
-              empno: employee?.empno || "",
-              jobcode: "",
-              deptcode: "",
-              effdate: "",
-              salary: 0,
-            });
-            setIsAddOpen(true);
-          }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Job History
-          </Button>
-        </div>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Job History</DialogTitle>
+          </DialogHeader>
+          
+          <EmployeeInfoDisplay employee={employee} />
+          
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job</TableHead>
+                  <TableHead>Effectivity Date</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Salary</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">
+                      Loading job history...
+                    </TableCell>
+                  </TableRow>
+                ) : jobHistory && jobHistory.length > 0 ? (
+                  jobHistory.map((history) => (
+                    <TableRow key={`${history.empno}-${history.jobcode}-${history.effdate}`}>
+                      <TableCell>{history.job?.jobdesc || history.jobcode}</TableCell>
+                      <TableCell>{formatDate(history.effdate)}</TableCell>
+                      <TableCell>{history.department?.deptname || history.deptcode || "N/A"}</TableCell>
+                      <TableCell>{formatSalary(history.salary)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(history)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick(history)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                      No job history found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button onClick={() => setIsAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Job History
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        {/* Job History Table */}
-        <JobHistoryTable 
-          jobHistory={jobHistory} 
-          isLoading={isJobHistoryLoading} 
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-        />
-      </div>
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Job History</DialogTitle>
+          </DialogHeader>
+          
+          <EmployeeInfoDisplay employee={employee} />
+          
+          <Form {...addJobHistoryForm}>
+            <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={addJobHistoryForm.control}
+                name="jobcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {jobs?.map((job) => (
+                          <SelectItem key={job.jobcode} value={job.jobcode}>
+                            {job.jobdesc || job.jobcode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addJobHistoryForm.control}
+                name="deptcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {departments?.map((dept) => (
+                          <SelectItem key={dept.deptcode} value={dept.deptcode}>
+                            {dept.deptname || dept.deptcode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addJobHistoryForm.control}
+                name="effdate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effective Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addJobHistoryForm.control}
+                name="salary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Salary</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createJobHistoryMutation.isPending}>
+                  {createJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Add
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Add Dialog */}
-      <JobHistoryAddDialog
-        open={isAddOpen}
-        onOpenChange={setIsAddOpen}
-        onSubmit={handleAddSubmit}
-        isPending={addJobHistoryMutation.isPending}
-        employee={employee}
-        jobs={jobs}
-        departments={departments}
-        addJobHistoryForm={addJobHistoryForm}
-      />
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Job History</DialogTitle>
+          </DialogHeader>
+          
+          <EmployeeInfoDisplay employee={employee} />
+          
+          <Form {...editJobHistoryForm}>
+            <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={editJobHistoryForm.control}
+                name="jobcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {jobs?.map((job) => (
+                          <SelectItem key={job.jobcode} value={job.jobcode}>
+                            {job.jobdesc || job.jobcode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editJobHistoryForm.control}
+                name="deptcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {departments?.map((dept) => (
+                          <SelectItem key={dept.deptcode} value={dept.deptcode}>
+                            {dept.deptname || dept.deptcode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editJobHistoryForm.control}
+                name="effdate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effective Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editJobHistoryForm.control}
+                name="salary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Salary</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateJobHistoryMutation.isPending}>
+                  {updateJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Edit Dialog */}
-      <JobHistoryEditDialog
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        onSubmit={handleEditSubmit}
-        isPending={updateJobHistoryMutation.isPending}
-        employee={employee}
-        jobs={jobs}
-        departments={departments}
-        editJobHistoryForm={editJobHistoryForm}
-      />
-
-      {/* Delete Dialog */}
-      <JobHistoryDeleteDialog
-        open={isDeleteOpen}
-        onOpenChange={setIsDeleteOpen}
-        onDelete={handleDelete}
-        isPending={deleteJobHistoryMutation.isPending}
-        employee={employee}
-        jobHistory={currentJobHistory}
-      />
+      <AlertDialog 
+        open={isDeleteOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDeleteOpen(false);
+            if (deleteJobHistoryMutation.isPending) {
+              deleteJobHistoryMutation.reset();
+            }
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Job History</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this job history record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="bg-muted/50 p-3 rounded-md my-2">
+            <p className="text-sm">
+              <span className="font-medium">Employee:</span> {employee?.lastname}, {employee?.firstname} ({employee?.empno})
+            </p>
+            {currentJobHistory && (
+              <>
+                <p className="text-sm"><span className="font-medium">Job:</span> {currentJobHistory.job?.jobdesc || currentJobHistory.jobcode}</p>
+                <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(currentJobHistory.effdate)}</p>
+              </>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                if (deleteJobHistoryMutation.isPending) {
+                  deleteJobHistoryMutation.reset();
+                }
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (currentJobHistory) {
+                  deleteJobHistoryMutation.mutate(currentJobHistory);
+                }
+              }}
+              disabled={deleteJobHistoryMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteJobHistoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
-}
+};
+
+export default JobHistoryDialog;
