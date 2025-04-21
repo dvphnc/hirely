@@ -65,6 +65,24 @@ interface JobHistoryWithDetails extends JobHistory {
   };
 }
 
+// Create a reusable component for employee information display
+const EmployeeInfoDisplay = ({ employee }: { employee: Employee | null }) => (
+  <div className="bg-muted/50 p-4 rounded-md">
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
+        <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
+      </div>
+      <div>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
+        <p className="text-lg font-semibold text-neutral-800 dark:text-white">
+          {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
 const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProps) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -235,6 +253,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     },
   });
 
+  // Fix: Improved deletion mutation with better state handling
   const deleteJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryWithDetails) => {
       const { error } = await supabase
@@ -245,7 +264,30 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         .eq("effdate", jobHistory.effdate);
       
       if (error) throw new Error(error.message);
-      return true;
+      return { success: true };
+    },
+    onMutate: async (jobHistory) => {
+      // Optimistically update UI
+      await queryClient.cancelQueries({ queryKey: ["jobHistory", employee?.empno] });
+      
+      // Snapshot the previous value
+      const previousJobHistory = queryClient.getQueryData(["jobHistory", employee?.empno]);
+      
+      // Optimistically remove the item from the list
+      if (previousJobHistory) {
+        queryClient.setQueryData(
+          ["jobHistory", employee?.empno],
+          (old: JobHistoryWithDetails[] | undefined) => 
+            old ? old.filter(
+              item => !(item.empno === jobHistory.empno && 
+                      item.jobcode === jobHistory.jobcode && 
+                      item.effdate === jobHistory.effdate)
+            ) : []
+        );
+      }
+      
+      // Return the snapshot so we can rollback if something goes wrong
+      return { previousJobHistory };
     },
     onSuccess: () => {
       // Reset the current job history and close the dialog
@@ -253,11 +295,22 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
       setIsDeleteOpen(false);
       toast.success("Job history deleted successfully");
       
-      // Force refresh the data
+      // We don't need to invalidate the query here since we already updated it optimistically
+      // This just ensures our data is in sync with the server
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
+      // Fix: Also ensure the employees data is refreshed
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // If the mutation fails, roll back to the previous value
+      if (context?.previousJobHistory) {
+        queryClient.setQueryData(["jobHistory", employee?.empno], context.previousJobHistory);
+      }
       toast.error(`Error deleting job history: ${error.message}`);
+    },
+    onSettled: () => {
+      // Always make sure we're up to date and fully settled regardless of success or failure
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employee?.empno] });
     },
   });
 
@@ -305,24 +358,6 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     }
   }, [open]);
 
-  // Create a consistent employee information display component
-  const EmployeeInfoDisplay = () => (
-    <div className="bg-muted/50 p-4 rounded-md">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Number</p>
-          <p className="text-lg font-semibold text-neutral-800 dark:text-white">{employee?.empno || "N/A"}</p>
-        </div>
-        <div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Employee Name</p>
-          <p className="text-lg font-semibold text-neutral-800 dark:text-white">
-            {employee ? `${employee.lastname}, ${employee.firstname}` : "N/A"}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -331,7 +366,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             <DialogTitle>Job History</DialogTitle>
           </DialogHeader>
           
-          <EmployeeInfoDisplay />
+          <EmployeeInfoDisplay employee={employee} />
           
           <div className="rounded-md border">
             <Table>
@@ -403,7 +438,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               <DialogTitle>Add Job History</DialogTitle>
             </DialogHeader>
             
-            <EmployeeInfoDisplay />
+            <EmployeeInfoDisplay employee={employee} />
             
             <Form {...addJobHistoryForm}>
               <form onSubmit={addJobHistoryForm.handleSubmit((data) => createJobHistoryMutation.mutate(data))} className="space-y-4">
@@ -516,7 +551,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               <DialogTitle>Edit Job History</DialogTitle>
             </DialogHeader>
             
-            <EmployeeInfoDisplay />
+            <EmployeeInfoDisplay employee={employee} />
             
             <Form {...editJobHistoryForm}>
               <form onSubmit={editJobHistoryForm.handleSubmit((data) => updateJobHistoryMutation.mutate(data))} className="space-y-4">
@@ -624,7 +659,19 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialog 
+          open={isDeleteOpen} 
+          onOpenChange={(open) => {
+            // Fix: Only update the state if we're closing the dialog deliberately
+            // This prevents the UI from getting into an inconsistent state
+            if (!open) {
+              setIsDeleteOpen(false);
+              if (deleteJobHistoryMutation.isPending) {
+                deleteJobHistoryMutation.reset();
+              }
+            }
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Job History</AlertDialogTitle>
@@ -644,7 +691,16 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               )}
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel 
+                onClick={() => {
+                  // Fix: Ensure we properly clean up if cancel is clicked
+                  if (deleteJobHistoryMutation.isPending) {
+                    deleteJobHistoryMutation.reset();
+                  }
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction 
                 onClick={() => {
                   if (currentJobHistory) {
