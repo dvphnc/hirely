@@ -1,266 +1,41 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useState } from "react";
 import { Employee } from "@/types/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2, Loader2, History } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
-import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import JobHistoryDialog from "@/components/JobHistoryDialog";
-
-const employeeSchema = z.object({
-  empno: z.string().min(1, "Employee number is required"),
-  lastname: z.string().min(1, "Last name is required"),
-  firstname: z.string().min(1, "First name is required"),
-  gender: z.string().min(1, "Gender is required"),
-  birthdate: z.string().min(1, "Birth date is required"),
-  hiredate: z.string().min(1, "Hire date is required"),
-  sepdate: z.string().optional().nullable(),
-});
-
-type EmployeeFormValues = z.infer<typeof employeeSchema>;
+import { Plus } from "lucide-react";
+import JobHistoryDialog from "@/components/JobHistory/JobHistoryDialog";
+import { useEmployeeData } from "@/components/Employees/hooks/useEmployeeData";
+import { useEmployeeMutations } from "@/components/Employees/hooks/useEmployeeMutations";
+import { AddEmployeeDialog } from "@/components/Employees/components/AddEmployeeDialog";
+import { EditEmployeeDialog } from "@/components/Employees/components/EditEmployeeDialog";
+import { DeleteEmployeeDialog } from "@/components/Employees/components/DeleteEmployeeDialog";
+import { EmployeeSearch } from "@/components/Employees/components/EmployeeSearch";
+import { EmployeeTable } from "@/components/Employees/components/EmployeeTable";
 
 const Employees = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
-  const [showInactive, setShowInactive] = useState(true);
-  const [nextEmpNo, setNextEmpNo] = useState("");
-  
-  const queryClient = useQueryClient();
-  
-  useEffect(() => {
-    const savedShowInactive = localStorage.getItem('showInactive') === 'true';
-    setShowInactive(savedShowInactive);
-  }, []);
-  
-  const { data: employees, isLoading, error } = useQuery({
-    queryKey: ["employees"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employee")
-        .select("*")
-        .order('empno', { ascending: true });
-      
-      if (error) throw new Error(error.message);
-      return data as Employee[];
-    },
-  });
 
-  useEffect(() => {
-    if (employees && employees.length > 0) {
-      const sortedEmployees = [...employees].sort((a, b) => {
-        return a.empno.localeCompare(b.empno);
-      });
-      
-      const lastEmpNo = sortedEmployees[sortedEmployees.length - 1].empno;
-      
-      const numericPart = parseInt(lastEmpNo, 10);
-      
-      if (!isNaN(numericPart)) {
-        const nextNumber = numericPart + 1;
-        setNextEmpNo(nextNumber.toString().padStart(lastEmpNo.length, '0'));
-      } else {
-        setNextEmpNo(lastEmpNo + '1');
-      }
-    } else {
-      setNextEmpNo("00001");
-    }
-  }, [employees]);
+  const { 
+    employees,
+    isLoading,
+    error,
+    searchTerm,
+    setSearchTerm,
+    showInactive,
+    setShowInactive,
+    nextEmpNo
+  } = useEmployeeData();
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('employee-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'employee'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["employees"] });
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const createEmployeeMutation = useMutation({
-    mutationFn: async (newEmployee: EmployeeFormValues) => {
-      const employeeToInsert = {
-        empno: newEmployee.empno,
-        lastname: newEmployee.lastname,
-        firstname: newEmployee.firstname,
-        gender: newEmployee.gender,
-        birthdate: newEmployee.birthdate,
-        hiredate: newEmployee.hiredate,
-        sepdate: newEmployee.sepdate
-      };
-      
-      const { data, error } = await supabase
-        .from("employee")
-        .insert(employeeToInsert)
-        .select();
-      
-      if (error) throw new Error(error.message);
-      return data[0];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setIsAddOpen(false);
-      toast.success("Employee added successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error adding employee: ${error.message}`);
-    },
-  });
-
-  const updateEmployeeMutation = useMutation({
-    mutationFn: async (employee: EmployeeFormValues) => {
-      const employeeToUpdate = {
-        empno: employee.empno,
-        lastname: employee.lastname,
-        firstname: employee.firstname,
-        gender: employee.gender,
-        birthdate: employee.birthdate,
-        hiredate: employee.hiredate,
-        sepdate: employee.sepdate
-      };
-      
-      const { data, error } = await supabase
-        .from("employee")
-        .update(employeeToUpdate)
-        .eq("empno", employee.empno)
-        .select();
-      
-      if (error) throw new Error(error.message);
-      return data[0];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setIsEditOpen(false);
-      toast.success("Employee updated successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error updating employee: ${error.message}`);
-    },
-  });
-
-  const deleteEmployeeMutation = useMutation({
-    mutationFn: async (empno: string) => {
-      const { error } = await supabase
-        .from("employee")
-        .delete()
-        .eq("empno", empno);
-      
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setIsDeleteOpen(false);
-      toast.success("Employee deleted successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error deleting employee: ${error.message}`);
-    },
-  });
-
-  const filteredEmployees = employees?.filter((employee) => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      employee.empno.toLowerCase().includes(searchLower) ||
-      (employee.lastname && employee.lastname.toLowerCase().includes(searchLower)) ||
-      (employee.firstname && employee.firstname.toLowerCase().includes(searchLower));
-    
-    const matchesStatus = showInactive || !employee.sepdate;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(parseISO(dateString), "MMM d, yyyy");
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const addEmployeeForm = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: {
-      empno: nextEmpNo,
-      lastname: "",
-      firstname: "",
-      gender: "",
-      birthdate: "",
-      hiredate: "",
-      sepdate: null,
-    },
-  });
-
-  useEffect(() => {
-    if (nextEmpNo && isAddOpen) {
-      addEmployeeForm.setValue("empno", nextEmpNo);
-    }
-  }, [nextEmpNo, isAddOpen, addEmployeeForm]);
-
-  const editEmployeeForm = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: {
-      empno: "",
-      lastname: "",
-      firstname: "",
-      gender: "",
-      birthdate: "",
-      hiredate: "",
-      sepdate: null,
-    },
-  });
+  const { deleteEmployeeMutation } = useEmployeeMutations();
 
   const handleEditClick = (employee: Employee) => {
     setCurrentEmployee(employee);
-    editEmployeeForm.reset({
-      empno: employee.empno,
-      lastname: employee.lastname || "",
-      firstname: employee.firstname || "",
-      gender: employee.gender || "",
-      birthdate: employee.birthdate || "",
-      hiredate: employee.hiredate || "",
-      sepdate: employee.sepdate,
-    });
     setIsEditOpen(true);
   };
 
@@ -274,433 +49,81 @@ const Employees = () => {
     setIsJobHistoryOpen(true);
   };
 
+  const handleConfirmDelete = () => {
+    if (currentEmployee) {
+      deleteEmployeeMutation.mutate(currentEmployee.empno, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setCurrentEmployee(null);
+        }
+      });
+    }
+  };
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center py-8 text-red-500">
+          Error loading employees
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Employees</h1>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="instagram-gradient">
-                <Plus className="mr-2 h-4 w-4" /> Add Employee
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Employee</DialogTitle>
-              </DialogHeader>
-              <Form {...addEmployeeForm}>
-                <form onSubmit={addEmployeeForm.handleSubmit((data) => createEmployeeMutation.mutate(data))} className="space-y-4">
-                  <FormField
-                    control={addEmployeeForm.control}
-                    name="empno"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Employee Number</FormLabel>
-                        <FormControl>
-                          <Input value={field.value} onChange={field.onChange} readOnly className="bg-muted/50" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={addEmployeeForm.control}
-                      name="lastname"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter last name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={addEmployeeForm.control}
-                      name="firstname"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter first name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={addEmployeeForm.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="M">Male</SelectItem>
-                            <SelectItem value="F">Female</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addEmployeeForm.control}
-                    name="birthdate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Birth Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addEmployeeForm.control}
-                    name="hiredate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hire Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addEmployeeForm.control}
-                    name="sepdate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Separation Date (optional)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date" 
-                            {...field} 
-                            value={field.value || ""} 
-                            onChange={(e) => {
-                              field.onChange(e.target.value || null);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <Button type="submit" disabled={createEmployeeMutation.isPending}>
-                      {createEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Add Employee
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <Button
+            className="instagram-gradient"
+            onClick={() => setIsAddOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Employee
+          </Button>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Employee Management</CardTitle>
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mt-2">
-              <div className="relative w-full md:w-auto flex-grow">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  type="search"
-                  placeholder="Search by employee number, name..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="show-inactive-toggle" className="text-sm font-medium">
-                  Show Inactive Employees
-                </label>
-                <Switch
-                  id="show-inactive-toggle"
-                  checked={showInactive}
-                  onCheckedChange={(checked) => {
-                    setShowInactive(checked);
-                    localStorage.setItem('showInactive', checked.toString());
-                  }}
-                />
-              </div>
-            </div>
+            <EmployeeSearch
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              showInactive={showInactive}
+              onShowInactiveChange={setShowInactive}
+            />
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-8">Loading employees...</div>
-            ) : error ? (
-              <div className="flex justify-center py-8 text-red-500">
-                Error loading employees
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee No.</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Gender</TableHead>
-                      <TableHead>Birth Date</TableHead>
-                      <TableHead>Hire Date</TableHead>
-                      <TableHead>Separation Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEmployees && filteredEmployees.length > 0 ? (
-                      filteredEmployees.map((employee) => (
-                        <TableRow key={employee.empno} className={employee.sepdate ? "bg-muted/30" : ""}>
-                          <TableCell className="font-medium">{employee.empno}</TableCell>
-                          <TableCell>
-                            {employee.lastname}, {employee.firstname}
-                          </TableCell>
-                          <TableCell>{employee.gender || "N/A"}</TableCell>
-                          <TableCell>{formatDate(employee.birthdate)}</TableCell>
-                          <TableCell>{formatDate(employee.hiredate)}</TableCell>
-                          <TableCell>
-                            {employee.sepdate ? (
-                              <span className="text-muted-foreground">{formatDate(employee.sepdate)}</span>
-                            ) : (
-                              <span className="text-green-600 dark:text-green-400 font-medium">Active</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditClick(employee)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleJobHistoryClick(employee)}
-                              >
-                                <History className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteClick(employee)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center py-4 text-muted-foreground"
-                        >
-                          No employees found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <EmployeeTable
+              employees={employees}
+              isLoading={isLoading}
+              onEditClick={handleEditClick}
+              onDeleteClick={handleDeleteClick}
+              onJobHistoryClick={handleJobHistoryClick}
+            />
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Employee</DialogTitle>
-          </DialogHeader>
-          <Form {...editEmployeeForm}>
-            <form onSubmit={editEmployeeForm.handleSubmit((data) => updateEmployeeMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={editEmployeeForm.control}
-                name="empno"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Employee Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter employee number" {...field} disabled className="bg-muted/50" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={editEmployeeForm.control}
-                  name="lastname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter last name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editEmployeeForm.control}
-                  name="firstname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter first name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={editEmployeeForm.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="M">Male</SelectItem>
-                        <SelectItem value="F">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editEmployeeForm.control}
-                name="birthdate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Birth Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editEmployeeForm.control}
-                name="hiredate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hire Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editEmployeeForm.control}
-                name="sepdate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Separation Date (optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="date" 
-                        {...field} 
-                        value={field.value || ""} 
-                        onChange={(e) => {
-                          field.onChange(e.target.value || null);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <div className="flex w-full justify-between">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      if (currentEmployee) {
-                        handleJobHistoryClick(currentEmployee);
-                      }
-                    }}
-                  >
-                    <History className="mr-2 h-4 w-4" /> Manage Job History
-                  </Button>
-                  <Button type="submit" disabled={updateEmployeeMutation.isPending}>
-                    {updateEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Update Employee
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <AddEmployeeDialog
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        nextEmpNo={nextEmpNo}
+      />
 
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Employee</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to delete the employee <strong>{currentEmployee?.lastname}, {currentEmployee?.firstname}</strong>?</p>
-            <p className="text-sm text-muted-foreground mt-2">This action cannot be undone.</p>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDeleteOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => {
-                if (currentEmployee) {
-                  deleteEmployeeMutation.mutate(currentEmployee.empno);
-                }
-              }}
-              disabled={deleteEmployeeMutation.isPending}
-            >
-              {deleteEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditEmployeeDialog
+        employee={currentEmployee}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
+
+      <DeleteEmployeeDialog
+        employee={currentEmployee}
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        onConfirmDelete={handleConfirmDelete}
+        isDeleting={deleteEmployeeMutation.isPending}
+      />
 
       <JobHistoryDialog
         employee={currentEmployee}
