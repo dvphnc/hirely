@@ -97,7 +97,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
     },
     onSuccess: () => {
       toast.success("Job history deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      // Removed the unnecessary employees query invalidation
     },
     onError: (error, _, context) => {
       if (context?.previousJobHistory) {
@@ -106,7 +106,10 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       toast.error(`Error deleting job history: ${error.message}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      // This ensures we refetch the job history data but only after everything is complete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      }, 300);
     },
   });
 

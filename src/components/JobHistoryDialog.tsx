@@ -11,7 +11,7 @@ import { useJobHistoryMutations } from "./JobHistory/hooks/useJobHistoryMutation
 import AddJobHistoryForm from "./JobHistory/components/AddJobHistoryForm";
 import EditJobHistoryForm from "./JobHistory/components/EditJobHistoryForm";
 import DeleteJobHistoryDialog from "./JobHistory/components/DeleteJobHistoryDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "./JobHistory/types/JobHistoryTypes";
@@ -28,6 +28,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentJobHistory, setCurrentJobHistory] = useState<JobHistoryWithDetails | null>(null);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   
   const { jobHistory, isLoading, jobs, departments } = useJobHistoryData(employee);
   const { createJobHistoryMutation, updateJobHistoryMutation, deleteJobHistoryMutation } = useJobHistoryMutations(employee?.empno);
@@ -35,7 +36,13 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!employee?.empno) return;
+    if (!employee?.empno || !open) return;
+    
+    // Clean up any existing channel before creating a new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
     
     const channel = supabase
       .channel('job-history-changes')
@@ -58,17 +65,24 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
             }, 300);
           } else {
+            // Debounce the query invalidation
             setTimeout(() => {
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
-            }, 100);
+            }, 300);
           }
         }
       )
       .subscribe();
+      
+    channelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [employee?.empno, queryClient]);
+  }, [employee?.empno, queryClient, open]);
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
     setCurrentJobHistory(jobHistory);
