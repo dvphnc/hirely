@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import JobHistoryDialog from "@/components/JobHistory/JobHistoryDialog";
+import JobHistoryDialog from "@/components/JobHistoryDialog"; // Fixed import path
 import { useEmployeeData } from "@/components/Employees/hooks/useEmployeeData";
 import { useEmployeeMutations } from "@/components/Employees/hooks/useEmployeeMutations";
 import { AddEmployeeDialog } from "@/components/Employees/components/AddEmployeeDialog";
