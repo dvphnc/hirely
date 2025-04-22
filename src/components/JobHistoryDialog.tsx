@@ -1,11 +1,9 @@
 
-import React, { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { JobHistoryDialogProps, JobHistoryFormValues, JobHistoryWithDetails } from "./JobHistory/types/JobHistoryTypes";
+import { Employee } from "@/types/supabase";
 import EmployeeInfoDisplay from "./JobHistory/components/EmployeeInfoDisplay";
 import JobHistoryTable from "./JobHistory/components/JobHistoryTable";
 import { useJobHistoryData } from "./JobHistory/hooks/useJobHistoryData";
@@ -13,6 +11,16 @@ import { useJobHistoryMutations } from "./JobHistory/hooks/useJobHistoryMutation
 import AddJobHistoryForm from "./JobHistory/components/AddJobHistoryForm";
 import EditJobHistoryForm from "./JobHistory/components/EditJobHistoryForm";
 import DeleteJobHistoryDialog from "./JobHistory/components/DeleteJobHistoryDialog";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { JobHistoryFormValues, JobHistoryWithDetails } from "./JobHistory/types/JobHistoryTypes";
+
+interface JobHistoryDialogProps {
+  employee: Employee | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
 const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProps) => {
   const [isAddOpen, setIsAddOpen] = useState(false);
