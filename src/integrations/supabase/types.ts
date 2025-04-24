@@ -34,14 +34,20 @@ export type Database = {
         Row: {
           deptcode: string
           deptname: string | null
+          stamp: string | null
+          status: string | null
         }
         Insert: {
           deptcode: string
           deptname?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Update: {
           deptcode?: string
           deptname?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -54,6 +60,8 @@ export type Database = {
           hiredate: string | null
           lastname: string | null
           sepdate: string | null
+          stamp: string | null
+          status: string | null
         }
         Insert: {
           birthdate?: string | null
@@ -63,6 +71,8 @@ export type Database = {
           hiredate?: string | null
           lastname?: string | null
           sepdate?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Update: {
           birthdate?: string | null
@@ -72,6 +82,8 @@ export type Database = {
           hiredate?: string | null
           lastname?: string | null
           sepdate?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -79,14 +91,20 @@ export type Database = {
         Row: {
           jobcode: string
           jobdesc: string | null
+          stamp: string | null
+          status: string | null
         }
         Insert: {
           jobcode: string
           jobdesc?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Update: {
           jobcode?: string
           jobdesc?: string | null
+          stamp?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -97,6 +115,8 @@ export type Database = {
           empno: string
           jobcode: string
           salary: number | null
+          stamp: string | null
+          status: string | null
         }
         Insert: {
           deptcode?: string | null
@@ -104,6 +124,8 @@ export type Database = {
           empno: string
           jobcode: string
           salary?: number | null
+          stamp?: string | null
+          status?: string | null
         }
         Update: {
           deptcode?: string | null
@@ -111,6 +133,8 @@ export type Database = {
           empno?: string
           jobcode?: string
           salary?: number | null
+          stamp?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -278,15 +302,86 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          can_add: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          table_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_add?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          table_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_add?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          table_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_table_permission: {
+        Args: { table_name: string; action: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_blocked: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "user" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -401,6 +496,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "user", "blocked"],
+    },
   },
 } as const

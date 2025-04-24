@@ -12,7 +12,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  Settings
+  Settings,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -93,6 +94,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Building, label: "Departments", href: "/departments" },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
+
+  // Add User Management for admins
+  if (isAdmin) {
+    navItems.push({ 
+      icon: ShieldCheck, 
+      label: "User Management", 
+      href: "/user-management" 
+    });
+  }
 
   // Extract user name from user_metadata or fallback to email
   const userName = user?.user_metadata?.name || user?.email;

@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isBlocked } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +38,17 @@ const SignIn = () => {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
+          
+          {isBlocked && (
+            <div className="px-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Your account has been blocked. Please contact an administrator.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
           
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
@@ -72,7 +85,7 @@ const SignIn = () => {
               <Button 
                 type="submit" 
                 className="w-full instagram-gradient" 
-                disabled={isLoading}
+                disabled={isLoading || isBlocked}
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
