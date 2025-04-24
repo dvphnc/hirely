@@ -4,16 +4,16 @@ import { toast } from "sonner";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { Database } from "@/integrations/supabase/types";
 
+// Define more specific types
 type TableName = keyof Database['public']['Tables'];
-type RowType = Database['public']['Tables'][TableName]['Row'];
 
-export async function restoreRecord(
-  tableName: TableName, 
+export async function restoreRecord<T extends TableName>(
+  tableName: T, 
   primaryKey: string,
   primaryKeyValue: string,
   queryClient: any,
   queryKey: string | string[]
-): Promise<RowType | null> {
+): Promise<any | null> {
   try {
     // Get the record
     const { data: record, error: getError } = await supabase
@@ -30,7 +30,7 @@ export async function restoreRecord(
       .update({
         status: 'restored',
         stamp: new Date().toISOString()
-      })
+      } as any)  // Using 'any' since we can't easily type this across all tables
       .eq(primaryKey, primaryKeyValue)
       .select()
       .single();

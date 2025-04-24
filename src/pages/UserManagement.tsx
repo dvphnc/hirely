@@ -101,7 +101,7 @@ const UserManagement = () => {
         throw new Error("No user data returned from auth.admin.listUsers");
       }
 
-      const authUsers = data.users;
+      const authUsers = data.users as Array<{id: string, email: string}>;
 
       const mergedUsers = profiles.map(profile => {
         const authUser = authUsers.find(user => user.id === profile.id);
