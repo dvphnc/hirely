@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import JobHistoryDialog from "@/components/JobHistoryDialog"; // Fixed import path
+import JobHistoryDialog from "@/components/JobHistoryDialog";
 import { useEmployeeData } from "@/components/Employees/hooks/useEmployeeData";
 import { useEmployeeMutations } from "@/components/Employees/hooks/useEmployeeMutations";
 import { AddEmployeeDialog } from "@/components/Employees/components/AddEmployeeDialog";
@@ -13,6 +13,8 @@ import { EditEmployeeDialog } from "@/components/Employees/components/EditEmploy
 import { DeleteEmployeeDialog } from "@/components/Employees/components/DeleteEmployeeDialog";
 import { EmployeeSearch } from "@/components/Employees/components/EmployeeSearch";
 import { EmployeeTable } from "@/components/Employees/components/EmployeeTable";
+import { ManageUsersButton } from "@/components/ManageUsersButton";
+import { usePermissions } from "@/context/auth-context";
 
 const Employees = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -33,6 +35,7 @@ const Employees = () => {
   } = useEmployeeData();
 
   const { deleteEmployeeMutation } = useEmployeeMutations();
+  const { canAdd, canEdit, canDelete } = usePermissions("employee");
 
   const handleEditClick = (employee: Employee) => {
     setCurrentEmployee(employee);
@@ -75,12 +78,17 @@ const Employees = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Employees</h1>
-          <Button
-            className="instagram-gradient"
-            onClick={() => setIsAddOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
+          <div className="flex gap-2">
+            <ManageUsersButton />
+            {canAdd && (
+              <Button
+                className="instagram-gradient"
+                onClick={() => setIsAddOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Employee
+              </Button>
+            )}
+          </div>
         </div>
 
         <Card>
@@ -97,8 +105,8 @@ const Employees = () => {
             <EmployeeTable
               employees={employees}
               isLoading={isLoading}
-              onEditClick={handleEditClick}
-              onDeleteClick={handleDeleteClick}
+              onEditClick={canEdit ? handleEditClick : undefined}
+              onDeleteClick={canDelete ? handleDeleteClick : undefined}
               onJobHistoryClick={handleJobHistoryClick}
             />
           </CardContent>

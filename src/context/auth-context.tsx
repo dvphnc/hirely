@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = userProfile?.role === 'admin';
   const isBlocked = userProfile?.role === 'blocked';
 
-  // Fetch user profile and permissions
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data: profile, error: profileError } = await supabase
@@ -70,7 +68,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
 
-      // Only fetch permissions if the user is not blocked
       if (profile.role !== 'blocked') {
         const { data: perms, error: permsError } = await supabase
           .from('user_permissions')
@@ -98,13 +95,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // When the auth state changes, update the user profile
         if (session?.user) {
           setTimeout(() => {
             fetchUserProfile(session.user.id);
@@ -116,7 +111,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -149,10 +143,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (data.user) {
-        // After login, fetch the user profile
         await fetchUserProfile(data.user.id);
         
-        // Check if user is blocked before showing welcome message
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('role')
@@ -160,7 +152,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (profile?.role === 'blocked') {
-          // If user is blocked, log them out and show message
           await supabase.auth.signOut();
           toast({
             variant: "destructive",
@@ -212,7 +203,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (data.user) {
-        // Fix: Use the correct format for sonner toast
         sonnerToast.success("Account created", {
           description: "Check your email for the confirmation link."
         });
@@ -274,11 +264,18 @@ export const useAuth = () => {
   return context;
 };
 
-// Helper hook for permissions
 export const usePermissions = (tableName: string) => {
-  const { permissions, isAdmin } = useAuth();
+  const { permissions, isAdmin, isBlocked } = useAuth();
   
-  // Admins always have full permissions
+  if (isBlocked) {
+    return {
+      canView: false,
+      canAdd: false,
+      canEdit: false,
+      canDelete: false
+    };
+  }
+  
   if (isAdmin) {
     return {
       canView: true,
@@ -288,7 +285,6 @@ export const usePermissions = (tableName: string) => {
     };
   }
   
-  // Find permissions for this table
   const tablePermissions = permissions.find(p => p.table_name === tableName);
   
   return {
