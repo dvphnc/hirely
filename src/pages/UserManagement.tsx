@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +51,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-// Define types for user management
 interface User {
   id: string;
   email: string;
@@ -61,14 +59,12 @@ interface User {
   created_at: string;
 }
 
-// User edit form schema
 const userUpdateSchema = z.object({
   role: z.enum(["admin", "user", "blocked"]),
 });
 
 type UserUpdateFormValues = z.infer<typeof userUpdateSchema>;
 
-// Permission edit form schema
 const permissionSchema = z.object({
   can_view: z.boolean(),
   can_add: z.boolean(),
@@ -88,23 +84,25 @@ const UserManagement = () => {
 
   const queryClient = useQueryClient();
 
-  // Fetch all users
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      // Join auth.users with user_profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("user_profiles")
         .select("*");
       
       if (profilesError) throw profilesError;
 
-      // Get emails from auth.users
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      const { data, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) throw authError;
+      
+      if (!data || !data.users) {
+        throw new Error("No user data returned from auth.admin.listUsers");
+      }
 
-      // Merge data
+      const authUsers = data.users;
+
       const mergedUsers = profiles.map(profile => {
         const authUser = authUsers.find(user => user.id === profile.id);
         return {
@@ -118,10 +116,9 @@ const UserManagement = () => {
 
       return mergedUsers as User[];
     },
-    enabled: isAdmin, // Only run if user is admin
+    enabled: isAdmin,
   });
 
-  // Fetch user permissions for the selected user
   const { data: permissions, isLoading: isLoadingPermissions } = useQuery({
     queryKey: ["user-permissions", selectedUser?.id],
     queryFn: async () => {
@@ -138,7 +135,6 @@ const UserManagement = () => {
     enabled: !!selectedUser?.id && isPermissionsOpen,
   });
 
-  // Update user role mutation
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string, role: UserRole }) => {
       const { error } = await supabase
@@ -159,7 +155,6 @@ const UserManagement = () => {
     },
   });
 
-  // Update user permissions mutation
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ 
       userId, 
@@ -191,7 +186,6 @@ const UserManagement = () => {
     },
   });
 
-  // Filter users based on search term
   const filteredUsers = users?.filter((user) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -200,7 +194,6 @@ const UserManagement = () => {
     );
   });
 
-  // User role update form
   const userForm = useForm<UserUpdateFormValues>({
     resolver: zodResolver(userUpdateSchema),
     defaultValues: {
@@ -208,7 +201,6 @@ const UserManagement = () => {
     },
   });
 
-  // Permissions form for each table
   const employeePermissionsForm = useForm<PermissionFormValues>({
     resolver: zodResolver(permissionSchema),
     defaultValues: {
@@ -249,7 +241,6 @@ const UserManagement = () => {
     },
   });
 
-  // Handle opening the edit dialog
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
     userForm.reset({
@@ -258,16 +249,13 @@ const UserManagement = () => {
     setIsEditOpen(true);
   };
 
-  // Handle opening the permissions dialog
   const handlePermissionsClick = (user: User) => {
     setSelectedUser(user);
     setIsPermissionsOpen(true);
   };
 
-  // Update form values when permissions data is loaded
   useEffect(() => {
     if (permissions) {
-      // Find permissions for each table and update the respective form
       const employeePerms = permissions.find(p => p.table_name === "employee");
       if (employeePerms) {
         employeePermissionsForm.reset({
@@ -310,7 +298,6 @@ const UserManagement = () => {
     }
   }, [permissions]);
 
-  // If not admin, redirect or show not authorized message
   if (!isAdmin) {
     return (
       <DashboardLayout>
@@ -422,7 +409,6 @@ const UserManagement = () => {
         </Card>
       </div>
 
-      {/* Edit User Role Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -502,7 +488,6 @@ const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* User Permissions Dialog */}
       <Dialog open={isPermissionsOpen} onOpenChange={setIsPermissionsOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
