@@ -2,7 +2,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/auth-context";
@@ -17,14 +16,13 @@ import Jobs from "./pages/Jobs";
 import Departments from "./pages/Departments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import UserManagement from "./pages/UserManagement";
 
 // Create QueryClient outside the component to avoid re-creation on render
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isBlocked } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -32,46 +30,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/signin" replace />;
-  }
-  
-  // Show a message for blocked users
-  if (isBlocked) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Account Blocked</h1>
-          <p className="text-gray-700 mb-6">
-            Your account has been blocked by an administrator. 
-            Please contact the system administrator for assistance.
-          </p>
-          <Button 
-            onClick={() => window.location.href = "/signin"}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            Return to Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
-
-// Admin route component
-const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isAdmin } = useAuth();
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -104,9 +62,6 @@ const AppRoutes = () => (
     <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
     <Route path="/departments" element={<ProtectedRoute><Departments /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-    
-    {/* Admin Routes */}
-    <Route path="/user-management" element={<AdminRoute><UserManagement /></AdminRoute>} />
     
     {/* Redirects */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
