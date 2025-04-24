@@ -7,8 +7,8 @@ import { Database } from "@/integrations/supabase/types";
 // Define more specific types
 type TableName = keyof Database['public']['Tables'];
 
-export async function restoreRecord<T extends TableName>(
-  tableName: T, 
+export async function restoreRecord(
+  tableName: string, // Changed from generic parameter to string
   primaryKey: string,
   primaryKeyValue: string,
   queryClient: any,
@@ -16,8 +16,9 @@ export async function restoreRecord<T extends TableName>(
 ): Promise<any | null> {
   try {
     // Get the record
+    // Using `from` with a string parameter and type assertion for better compatibility
     const { data: record, error: getError } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('*')
       .eq(primaryKey, primaryKeyValue)
       .single();
@@ -26,11 +27,11 @@ export async function restoreRecord<T extends TableName>(
 
     // Update the record to set status to restored
     const { data: updatedRecord, error: updateError } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .update({
         status: 'restored',
         stamp: new Date().toISOString()
-      } as any)  // Using 'any' since we can't easily type this across all tables
+      })
       .eq(primaryKey, primaryKeyValue)
       .select()
       .single();
