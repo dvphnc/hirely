@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
 import { restoreRecord } from "@/utils/restore-utils";
-import { Restore } from "lucide-react";
+import { ArchiveRestore } from "lucide-react";
 
 interface RestoreActionProps {
   tableName: string;
@@ -30,7 +30,7 @@ export function RestoreAction({ tableName, primaryKey, primaryKeyValue, queryKey
             onClick={handleRestore}
             className="text-green-500 hover:text-green-700 hover:bg-green-100"
           >
-            <Restore className="h-4 w-4" />
+            <ArchiveRestore className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
