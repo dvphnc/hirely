@@ -10,6 +10,8 @@ export const employeeSchema = z.object({
   birthdate: z.string().min(1, "Birth date is required"),
   hiredate: z.string().min(1, "Hire date is required"),
   sepdate: z.string().nullable(),
+  status: z.string().optional(),
+  stamp: z.string().optional(),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;

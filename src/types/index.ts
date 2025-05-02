@@ -7,6 +7,8 @@ export interface Employee {
   birthDate: string;
   hireDate: string;
   sepDate?: string | null;
+  status?: string | null;
+  stamp?: string | null;
 }
 
 export interface JobHistory {
@@ -15,21 +17,27 @@ export interface JobHistory {
   effDate: string;
   salary: number;
   deptCode: string;
+  status?: string | null;
+  stamp?: string | null;
 }
 
 export interface Department {
   deptCode: string;
   deptName: string;
+  status?: string | null;
+  stamp?: string | null;
 }
 
 export interface Job {
   jobCode: string;
   jobDesc: string;
+  status?: string | null;
+  stamp?: string | null;
 }
 
 export interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'blocked';
 }
