@@ -10,6 +10,11 @@ export const useEmployeeMutations = () => {
   // Create mutation
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
+      // Ensure empno is present since it's required by the database
+      if (!newEmployee.empno) {
+        throw new Error("Employee number is required");
+      }
+      
       const { data, error } = await supabase
         .from('employee')
         .insert([{
@@ -34,6 +39,11 @@ export const useEmployeeMutations = () => {
   // Update mutation
   const updateEmployeeMutation = useMutation({
     mutationFn: async (employee: EmployeeFormValues) => {
+      // Ensure empno is present since it's required for updates
+      if (!employee.empno) {
+        throw new Error("Employee number is required for updates");
+      }
+      
       const { data, error } = await supabase
         .from('employee')
         .update({ 

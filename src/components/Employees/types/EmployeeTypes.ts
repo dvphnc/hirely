@@ -42,4 +42,7 @@ export interface EmployeeSearchProps {
   onSearchChange: (value: string) => void;
   showInactive: boolean;
   onShowInactiveChange: (value: boolean) => void;
+  showDeleted: boolean;
+  onShowDeletedChange: (value: boolean) => void;
+  isAdmin: boolean;
 }
