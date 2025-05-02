@@ -9,7 +9,7 @@ export const employeeSchema = z.object({
   gender: z.string().min(1, "Gender is required"),
   birthdate: z.string().min(1, "Birth date is required"),
   hiredate: z.string().min(1, "Hire date is required"),
-  sepdate: z.string().optional().nullable(),
+  sepdate: z.string().nullable(),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;
@@ -24,6 +24,7 @@ export interface EditEmployeeDialogProps {
   employee: Employee | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onManageJobHistory?: (employee: Employee) => void;
 }
 
 export interface DeleteEmployeeDialogProps {
@@ -32,11 +33,4 @@ export interface DeleteEmployeeDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirmDelete: () => void;
   isDeleting: boolean;
-}
-
-export interface EmployeeSearchProps {
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
-  showInactive: boolean;
-  onShowInactiveChange: (checked: boolean) => void;
 }

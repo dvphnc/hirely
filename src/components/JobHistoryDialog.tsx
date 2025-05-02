@@ -45,7 +45,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
     }
     
     const channel = supabase
-      .channel('job-history-changes')
+      .channel(`job-history-changes-${employee.empno}`)
       .on(
         'postgres_changes',
         {
@@ -60,15 +60,16 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             const rowKey = `${deleted.empno}-${deleted.jobcode}-${deleted.effdate}`;
             setRemovingKey(rowKey);
 
+            // Use a shorter timeout for deletion animations
             setTimeout(() => {
               setRemovingKey(null);
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
-            }, 300);
+            }, 100);
           } else {
-            // Debounce the query invalidation
+            // Use a shorter timeout for other updates
             setTimeout(() => {
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
-            }, 300);
+            }, 100);
           }
         }
       )

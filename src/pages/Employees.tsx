@@ -115,6 +115,7 @@ const Employees = () => {
         employee={currentEmployee}
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
+        onManageJobHistory={handleJobHistoryClick}
       />
 
       <DeleteEmployeeDialog

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { History, Loader2 } from "lucide-react";
+import { Loader2, History } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -27,7 +27,8 @@ import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
 export const EditEmployeeDialog = ({ 
   employee, 
   open, 
-  onOpenChange 
+  onOpenChange,
+  onManageJobHistory 
 }: EditEmployeeDialogProps) => {
   const { updateEmployeeMutation } = useEmployeeMutations();
   
@@ -64,6 +65,12 @@ export const EditEmployeeDialog = ({
         onOpenChange(false);
       }
     });
+  };
+
+  const handleJobHistoryClick = () => {
+    if (onManageJobHistory && employee) {
+      onManageJobHistory(employee);
+    }
   };
 
   return (
@@ -190,7 +197,7 @@ export const EditEmployeeDialog = ({
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => onOpenChange(false)}
+                  onClick={handleJobHistoryClick}
                 >
                   <History className="mr-2 h-4 w-4" /> Manage Job History
                 </Button>

@@ -77,9 +77,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       return { success: true };
     },
     onMutate: async (jobHistoryToDelete) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      
+      // Snapshot the previous value
       const previousJobHistory = queryClient.getQueryData(["jobHistory", employeeEmpno]);
       
+      // Optimistically update to the new value
       if (previousJobHistory) {
         queryClient.setQueryData(
           ["jobHistory", employeeEmpno],
@@ -93,23 +97,24 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
             ) : []
         );
       }
+      
       return { previousJobHistory };
     },
     onSuccess: () => {
       toast.success("Job history deleted successfully");
-      // Removed the unnecessary employees query invalidation
     },
     onError: (error, _, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousJobHistory) {
         queryClient.setQueryData(["jobHistory", employeeEmpno], context.previousJobHistory);
       }
       toast.error(`Error deleting job history: ${error.message}`);
     },
     onSettled: () => {
-      // This ensures we refetch the job history data but only after everything is complete
+      // Always make sure to refresh the data but with a very short delay
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
-      }, 300);
+      }, 50);
     },
   });
 
