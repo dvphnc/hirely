@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import JobHistoryDialog from "@/components/JobHistoryDialog"; // Fixed import path
+import JobHistoryDialog from "@/components/JobHistoryDialog";
 import { useEmployeeData } from "@/components/Employees/hooks/useEmployeeData";
 import { useEmployeeMutations } from "@/components/Employees/hooks/useEmployeeMutations";
 import { AddEmployeeDialog } from "@/components/Employees/components/AddEmployeeDialog";
@@ -13,6 +13,9 @@ import { EditEmployeeDialog } from "@/components/Employees/components/EditEmploy
 import { DeleteEmployeeDialog } from "@/components/Employees/components/DeleteEmployeeDialog";
 import { EmployeeSearch } from "@/components/Employees/components/EmployeeSearch";
 import { EmployeeTable } from "@/components/Employees/components/EmployeeTable";
+import { usePermission, useAuth } from "@/context/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Employees = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -20,6 +23,8 @@ const Employees = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const { isAdmin } = useAuth();
+  const { canAdd } = usePermission('employee');
 
   const { 
     employees,
@@ -29,7 +34,10 @@ const Employees = () => {
     setSearchTerm,
     showInactive,
     setShowInactive,
-    nextEmpNo
+    showDeleted,
+    setShowDeleted,
+    nextEmpNo,
+    refetch
   } = useEmployeeData();
 
   const { deleteEmployeeMutation } = useEmployeeMutations();
@@ -59,6 +67,23 @@ const Employees = () => {
       });
     }
   };
+  
+  const handleRestoreEmployee = async (employee: Employee) => {
+    try {
+      await supabase
+        .from('employee')
+        .update({ 
+          status: 'restored',
+          stamp: new Date().toISOString()
+        })
+        .eq('empno', employee.empno);
+      
+      toast.success("Employee restored successfully");
+      refetch();
+    } catch (error: any) {
+      toast.error(`Error restoring employee: ${error.message}`);
+    }
+  };
 
   if (error) {
     return (
@@ -78,6 +103,7 @@ const Employees = () => {
           <Button
             className="instagram-gradient"
             onClick={() => setIsAddOpen(true)}
+            disabled={!canAdd}
           >
             <Plus className="mr-2 h-4 w-4" /> Add Employee
           </Button>
@@ -91,6 +117,9 @@ const Employees = () => {
               onSearchChange={setSearchTerm}
               showInactive={showInactive}
               onShowInactiveChange={setShowInactive}
+              showDeleted={showDeleted}
+              onShowDeletedChange={setShowDeleted}
+              isAdmin={isAdmin}
             />
           </CardHeader>
           <CardContent>
@@ -100,6 +129,7 @@ const Employees = () => {
               onEditClick={handleEditClick}
               onDeleteClick={handleDeleteClick}
               onJobHistoryClick={handleJobHistoryClick}
+              onRestoreClick={isAdmin ? handleRestoreEmployee : undefined}
             />
           </CardContent>
         </Card>

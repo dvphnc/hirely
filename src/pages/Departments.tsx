@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2, RefreshCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth, usePermission } from "@/context/auth-context";
+import { Label } from "@/components/ui/label";
 
 // Form schema for department validation
 const departmentSchema = z.object({
@@ -43,29 +45,41 @@ const Departments = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState<Department | null>(null);
   
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { canAdd, canEdit, canDelete } = usePermission('department');
   
-  const { data: departments, isLoading, error } = useQuery({
-    queryKey: ["departments"],
+  const { data: departments, isLoading, error, refetch } = useQuery({
+    queryKey: ["departments", showDeleted],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("department")
         .select("*");
+      
+      // Only filter by deleted status if not showing deleted or if user is not admin
+      if (!showDeleted || !isAdmin) {
+        query = query.not('status', 'eq', 'deleted');
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw new Error(error.message);
       return data as Department[];
     },
   });
 
-  // Create department mutation - Ensure deptcode is required
+  // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
       // Explicitly ensuring deptcode is required by creating a new object
       const departmentToInsert = {
         deptcode: newDepartment.deptcode, // This is required
-        deptname: newDepartment.deptname  // This is also required due to our schema
+        deptname: newDepartment.deptname,  // This is also required due to our schema
+        status: 'added',
+        stamp: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -92,7 +106,9 @@ const Departments = () => {
       // Ensure deptcode is required for the update operation
       const departmentToUpdate = {
         deptcode: department.deptcode, // Required
-        deptname: department.deptname
+        deptname: department.deptname,
+        status: 'edited',
+        stamp: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -119,7 +135,10 @@ const Departments = () => {
     mutationFn: async (deptcode: string) => {
       const { error } = await supabase
         .from("department")
-        .delete()
+        .update({
+          status: 'deleted',
+          stamp: new Date().toISOString()
+        })
         .eq("deptcode", deptcode);
       
       if (error) throw new Error(error.message);
@@ -133,6 +152,24 @@ const Departments = () => {
       toast.error(`Error deleting department: ${error.message}`);
     },
   });
+
+  // Restore department function
+  const handleRestoreDepartment = async (department: Department) => {
+    try {
+      await supabase
+        .from('department')
+        .update({ 
+          status: 'restored',
+          stamp: new Date().toISOString()
+        })
+        .eq('deptcode', department.deptcode);
+      
+      toast.success("Department restored successfully");
+      refetch();
+    } catch (error: any) {
+      toast.error(`Error restoring department: ${error.message}`);
+    }
+  };
 
   const filteredDepartments = departments?.filter((department) => {
     const searchLower = searchTerm.toLowerCase();
@@ -183,7 +220,7 @@ const Departments = () => {
           <h1 className="text-2xl font-bold">Departments</h1>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="instagram-gradient">
+              <Button className="instagram-gradient" disabled={!canAdd}>
                 <Plus className="mr-2 h-4 w-4" /> Add Department
               </Button>
             </DialogTrigger>
@@ -234,15 +271,29 @@ const Departments = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Department Management</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Search by department code or name..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="space-y-4 mt-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search by department code or name..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              {isAdmin && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="show-deleted-departments"
+                    checked={showDeleted}
+                    onChange={(e) => setShowDeleted(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="show-deleted-departments">Show deleted records</Label>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -259,6 +310,12 @@ const Departments = () => {
                     <TableRow>
                       <TableHead>Department Code</TableHead>
                       <TableHead>Department Name</TableHead>
+                      {isAdmin && (
+                        <>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Updated</TableHead>
+                        </>
+                      )}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -268,20 +325,52 @@ const Departments = () => {
                         <TableRow key={department.deptcode}>
                           <TableCell className="font-medium">{department.deptcode}</TableCell>
                           <TableCell>{department.deptname || "N/A"}</TableCell>
+                          {isAdmin && (
+                            <>
+                              <TableCell>
+                                <span className={`capitalize ${
+                                  department.status === 'deleted' 
+                                    ? 'text-red-500' 
+                                    : department.status === 'edited' 
+                                    ? 'text-amber-500'
+                                    : department.status === 'restored'
+                                    ? 'text-blue-500'
+                                    : 'text-green-500'
+                                }`}>
+                                  {department.status || 'added'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {department.stamp ? new Date(department.stamp).toLocaleDateString() : 'N/A'}
+                              </TableCell>
+                            </>
+                          )}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleEditClick(department)}
+                                disabled={!canEdit}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
+                              {isAdmin && department.status === 'deleted' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-blue-500 hover:text-blue-700"
+                                  onClick={() => handleRestoreDepartment(department)}
+                                >
+                                  <RefreshCcw className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-red-500 hover:text-red-700"
                                 onClick={() => handleDeleteClick(department)}
+                                disabled={!canDelete}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -292,7 +381,7 @@ const Departments = () => {
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={3}
+                          colSpan={isAdmin ? 5 : 3}
                           className="text-center py-4 text-muted-foreground"
                         >
                           No departments found

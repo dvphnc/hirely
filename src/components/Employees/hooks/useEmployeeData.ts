@@ -3,11 +3,14 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Employee } from "@/types/supabase";
+import { useAuth } from "@/context/auth-context";
 
 export const useEmployeeData = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showInactive, setShowInactive] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [nextEmpNo, setNextEmpNo] = useState("");
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -15,13 +18,20 @@ export const useEmployeeData = () => {
     setShowInactive(savedShowInactive);
   }, []);
 
-  const { data: employees, isLoading, error } = useQuery({
-    queryKey: ["employees"],
+  const { data: employees, isLoading, error, refetch } = useQuery({
+    queryKey: ["employees", showDeleted],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("employee")
         .select("*")
         .order('empno', { ascending: true });
+      
+      // Only filter by deleted status if not showing deleted or if user is not admin
+      if (!showDeleted || !isAdmin) {
+        query = query.not('status', 'eq', 'deleted');
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw new Error(error.message);
       return data as Employee[];
@@ -77,8 +87,9 @@ export const useEmployeeData = () => {
       (employee.firstname && employee.firstname.toLowerCase().includes(searchLower));
     
     const matchesStatus = showInactive || !employee.sepdate;
+    const matchesDeleted = showDeleted || employee.status !== 'deleted';
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && (isAdmin ? true : matchesDeleted);
   });
 
   return {
@@ -89,6 +100,9 @@ export const useEmployeeData = () => {
     setSearchTerm,
     showInactive,
     setShowInactive,
-    nextEmpNo
+    showDeleted,
+    setShowDeleted,
+    nextEmpNo,
+    refetch
   };
 };

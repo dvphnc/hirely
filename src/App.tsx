@@ -16,6 +16,7 @@ import Jobs from "./pages/Jobs";
 import Departments from "./pages/Departments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import UserManagement from "./pages/UserManagement";
 
 // Create QueryClient outside the component to avoid re-creation on render
 const queryClient = new QueryClient();
@@ -30,6 +31,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/signin" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Admin route component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading, isAdmin } = useAuth();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -62,6 +82,9 @@ const AppRoutes = () => (
     <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
     <Route path="/departments" element={<ProtectedRoute><Departments /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+    
+    {/* Admin Routes */}
+    <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
     
     {/* Redirects */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />

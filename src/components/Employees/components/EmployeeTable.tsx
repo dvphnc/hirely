@@ -1,6 +1,6 @@
 
 import { format, parseISO } from "date-fns";
-import { Edit, History, Trash2 } from "lucide-react";
+import { Edit, History, Trash2, RefreshCcw } from "lucide-react";
 import { Employee } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePermission, useAuth } from "@/context/auth-context";
 
 interface EmployeeTableProps {
   employees: Employee[] | undefined;
@@ -18,6 +19,7 @@ interface EmployeeTableProps {
   onEditClick: (employee: Employee) => void;
   onDeleteClick: (employee: Employee) => void;
   onJobHistoryClick: (employee: Employee) => void;
+  onRestoreClick?: (employee: Employee) => void;
 }
 
 export const EmployeeTable = ({
@@ -25,8 +27,12 @@ export const EmployeeTable = ({
   isLoading,
   onEditClick,
   onDeleteClick,
-  onJobHistoryClick
+  onJobHistoryClick,
+  onRestoreClick
 }: EmployeeTableProps) => {
+  const { isAdmin } = useAuth();
+  const { canEdit, canDelete } = usePermission('employee');
+  
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
@@ -59,6 +65,12 @@ export const EmployeeTable = ({
             <TableHead>Birth Date</TableHead>
             <TableHead>Hire Date</TableHead>
             <TableHead>Separation Date</TableHead>
+            {isAdmin && (
+              <>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+              </>
+            )}
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -83,12 +95,33 @@ export const EmployeeTable = ({
                   </span>
                 )}
               </TableCell>
+              {isAdmin && (
+                <>
+                  <TableCell>
+                    <span className={`capitalize ${
+                      employee.status === 'deleted' 
+                        ? 'text-red-500' 
+                        : employee.status === 'edited' 
+                        ? 'text-amber-500'
+                        : employee.status === 'restored'
+                        ? 'text-blue-500'
+                        : 'text-green-500'
+                    }`}>
+                      {employee.status || 'added'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {employee.stamp ? formatDate(employee.stamp) : 'N/A'}
+                  </TableCell>
+                </>
+              )}
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onEditClick(employee)}
+                    disabled={!canEdit}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -99,11 +132,22 @@ export const EmployeeTable = ({
                   >
                     <History className="h-4 w-4" />
                   </Button>
+                  {isAdmin && employee.status === 'deleted' && onRestoreClick && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-500 hover:text-blue-700"
+                      onClick={() => onRestoreClick(employee)}
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     className="text-destructive hover:text-destructive"
                     onClick={() => onDeleteClick(employee)}
+                    disabled={!canDelete}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2, RefreshCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth, usePermission } from "@/context/auth-context";
 
 // Form schema for job validation
 const jobSchema = z.object({
@@ -44,29 +45,41 @@ const Jobs = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { canAdd, canEdit, canDelete } = usePermission('job');
   
-  const { data: jobs, isLoading, error } = useQuery({
-    queryKey: ["jobs"],
+  const { data: jobs, isLoading, error, refetch } = useQuery({
+    queryKey: ["jobs", showDeleted],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("job")
         .select("*");
+      
+      // Only filter by deleted status if not showing deleted or if user is not admin
+      if (!showDeleted || !isAdmin) {
+        query = query.not('status', 'eq', 'deleted');
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw new Error(error.message);
       return data as Job[];
     },
   });
 
-  // Create job mutation - Fixed to ensure jobcode is required
+  // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (newJob: JobFormValues) => {
       // Explicitly ensuring jobcode is required by creating a new object
       const jobToInsert = {
         jobcode: newJob.jobcode, // This is required
-        jobdesc: newJob.jobdesc  // This is optional
+        jobdesc: newJob.jobdesc,  // This is optional
+        status: 'added',
+        stamp: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -93,7 +106,9 @@ const Jobs = () => {
       // Ensure jobcode is required for the update operation
       const jobToUpdate = {
         jobcode: job.jobcode, // Required
-        jobdesc: job.jobdesc
+        jobdesc: job.jobdesc,
+        status: 'edited',
+        stamp: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -120,7 +135,10 @@ const Jobs = () => {
     mutationFn: async (jobcode: string) => {
       const { error } = await supabase
         .from("job")
-        .delete()
+        .update({
+          status: 'deleted',
+          stamp: new Date().toISOString()
+        })
         .eq("jobcode", jobcode);
       
       if (error) throw new Error(error.message);
@@ -134,6 +152,24 @@ const Jobs = () => {
       toast.error(`Error deleting job: ${error.message}`);
     },
   });
+
+  // Restore job function
+  const handleRestoreJob = async (job: Job) => {
+    try {
+      await supabase
+        .from('job')
+        .update({ 
+          status: 'restored',
+          stamp: new Date().toISOString()
+        })
+        .eq('jobcode', job.jobcode);
+      
+      toast.success("Job restored successfully");
+      refetch();
+    } catch (error: any) {
+      toast.error(`Error restoring job: ${error.message}`);
+    }
+  };
 
   const filteredJobs = jobs?.filter((job) => {
     const searchLower = searchTerm.toLowerCase();
@@ -184,7 +220,7 @@ const Jobs = () => {
           <h1 className="text-2xl font-bold">Jobs</h1>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="instagram-gradient">
+              <Button className="instagram-gradient" disabled={!canAdd}>
                 <Plus className="mr-2 h-4 w-4" /> Add Job
               </Button>
             </DialogTrigger>
@@ -235,15 +271,29 @@ const Jobs = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Job Management</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Search by job code or description..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="space-y-4 mt-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search by job code or description..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              {isAdmin && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="show-deleted-jobs"
+                    checked={showDeleted}
+                    onChange={(e) => setShowDeleted(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="show-deleted-jobs">Show deleted records</Label>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -260,6 +310,12 @@ const Jobs = () => {
                     <TableRow>
                       <TableHead>Job Code</TableHead>
                       <TableHead>Job Description</TableHead>
+                      {isAdmin && (
+                        <>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Updated</TableHead>
+                        </>
+                      )}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -269,20 +325,52 @@ const Jobs = () => {
                         <TableRow key={job.jobcode}>
                           <TableCell className="font-medium">{job.jobcode}</TableCell>
                           <TableCell>{job.jobdesc || "N/A"}</TableCell>
+                          {isAdmin && (
+                            <>
+                              <TableCell>
+                                <span className={`capitalize ${
+                                  job.status === 'deleted' 
+                                    ? 'text-red-500' 
+                                    : job.status === 'edited' 
+                                    ? 'text-amber-500'
+                                    : job.status === 'restored'
+                                    ? 'text-blue-500'
+                                    : 'text-green-500'
+                                }`}>
+                                  {job.status || 'added'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {job.stamp ? new Date(job.stamp).toLocaleDateString() : 'N/A'}
+                              </TableCell>
+                            </>
+                          )}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleEditClick(job)}
+                                disabled={!canEdit}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
+                              {isAdmin && job.status === 'deleted' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-blue-500 hover:text-blue-700"
+                                  onClick={() => handleRestoreJob(job)}
+                                >
+                                  <RefreshCcw className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-red-500 hover:text-red-700"
                                 onClick={() => handleDeleteClick(job)}
+                                disabled={!canDelete}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -293,7 +381,7 @@ const Jobs = () => {
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={3}
+                          colSpan={isAdmin ? 5 : 3}
                           className="text-center py-4 text-muted-foreground"
                         >
                           No jobs found

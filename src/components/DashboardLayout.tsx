@@ -12,7 +12,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  Settings
+  Settings,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +23,15 @@ interface NavItemProps {
   href: string;
   isActive: boolean;
   onClick?: () => void;
+  adminOnly?: boolean;
 }
 
-const NavItem = ({ icon: Icon, label, href, isActive, onClick }: NavItemProps) => {
+const NavItem = ({ icon: Icon, label, href, isActive, onClick, adminOnly = false }: NavItemProps) => {
+  const { isAdmin } = useAuth();
+  
+  // Don't render admin-only items for non-admins
+  if (adminOnly && !isAdmin) return null;
+  
   return (
     <Link 
       to={href} 
@@ -45,7 +52,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -91,6 +98,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Users, label: "Employees", href: "/employees" },
     { icon: Briefcase, label: "Jobs", href: "/jobs" },
     { icon: Building, label: "Departments", href: "/departments" },
+    { icon: UserCog, label: "Manage Users", href: "/users", adminOnly: true },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
@@ -135,6 +143,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               href={item.href}
               isActive={location.pathname === item.href}
               onClick={closeSidebar}
+              adminOnly={item.adminOnly}
             />
           ))}
         </nav>

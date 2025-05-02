@@ -5,22 +5,78 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { toast as sonnerToast } from 'sonner';
 
+interface UserPermission {
+  table_name: string;
+  can_add: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export type UserRole = 'admin' | 'user' | 'blocked';
+
+interface UserProfile {
+  id: string;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
+  permissions: UserPermission[];
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  isAdmin: boolean;
+  fetchUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const isAdmin = profile?.role === 'admin';
+
+  const fetchUserData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      if (profileData) {
+        setProfile(profileData as UserProfile);
+      }
+
+      // Fetch user permissions
+      const { data: permissionsData, error: permissionsError } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (permissionsError) throw permissionsError;
+
+      if (permissionsData) {
+        setPermissions(permissionsData as UserPermission[]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -28,6 +84,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (!session?.user) {
+          setProfile(null);
+          setPermissions([]);
+        }
       }
     );
 
@@ -36,6 +97,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      if (session?.user) {
+        // Fetch user data after authentication
+        fetchUserData();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -59,6 +125,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (data.user) {
+        // Fetch user profile to check if blocked
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          toast({
+            variant: "destructive",
+            title: "Error fetching profile",
+            description: profileError.message,
+          });
+          return false;
+        }
+
+        // Handle blocked users
+        if (profileData.role === 'blocked') {
+          // Sign out the user immediately
+          await supabase.auth.signOut();
+          toast({
+            variant: "destructive",
+            title: "Account blocked",
+            description: "Your account has been blocked. Please contact an administrator.",
+          });
+          return false;
+        }
+
+        setProfile(profileData as UserProfile);
+        
+        // Fetch user permissions
+        const { data: permissionsData } = await supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', data.user.id);
+          
+        if (permissionsData) {
+          setPermissions(permissionsData as UserPermission[]);
+        }
+
         toast({
           title: "Logged in successfully",
           description: `Welcome back, ${data.user.email}!`,
@@ -127,6 +233,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Logged out",
         description: "You have been logged out successfully.",
       });
+      setProfile(null);
+      setPermissions([]);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -137,7 +245,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      permissions, 
+      isAdmin,
+      login, 
+      signup, 
+      logout, 
+      isLoading, 
+      fetchUserData 
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -149,4 +268,22 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+export const usePermission = (tableName: string) => {
+  const { permissions, isAdmin } = useAuth();
+  
+  // Admins have all permissions
+  if (isAdmin) {
+    return { canAdd: true, canEdit: true, canDelete: true };
+  }
+  
+  // Find permissions for the specified table
+  const tablePermissions = permissions.find(p => p.table_name === tableName);
+  
+  return {
+    canAdd: tablePermissions?.can_add || false,
+    canEdit: tablePermissions?.can_edit || false,
+    canDelete: tablePermissions?.can_delete || false
+  };
 };
