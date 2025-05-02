@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUserManagement } from "@/hooks/useUserManagement";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,6 +39,7 @@ const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
+  const { setSpecificUserAsRegular } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -52,6 +54,13 @@ const UserManagement = () => {
       toast.error("You don't have permission to access this page");
     }
   }, [isAdmin, navigate]);
+
+  // Set specific user as regular user when component mounts
+  useEffect(() => {
+    if (isAdmin) {
+      setSpecificUserAsRegular();
+    }
+  }, [isAdmin, setSpecificUserAsRegular]);
 
   // Fetch all users with their profiles
   const { data: users, isLoading } = useQuery({
@@ -81,6 +90,54 @@ const UserManagement = () => {
     },
     enabled: isAdmin,
   });
+
+  // Subscribe to realtime updates for the profiles table
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const channel = supabase
+      .channel('public:profiles')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'profiles'
+        }, 
+        (payload) => {
+          // Refresh user data when profiles change
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient]);
+
+  // Subscribe to realtime updates for the user_permissions table
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const channel = supabase
+      .channel('public:user_permissions')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'user_permissions'
+        }, 
+        (payload) => {
+          // Refresh user data when permissions change
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient]);
 
   // Update user role mutation
   const updateRoleMutation = useMutation({

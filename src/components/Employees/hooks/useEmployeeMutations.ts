@@ -17,11 +17,11 @@ export const useEmployeeMutations = () => {
       
       const { data, error } = await supabase
         .from('employee')
-        .insert({
+        .insert([{
           ...newEmployee,
           status: 'added',
           stamp: new Date().toISOString()
-        })
+        }])
         .select();
 
       if (error) throw error;
