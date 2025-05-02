@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { EmployeeFormValues, employeeSchema, AddEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
+import { useEffect } from "react";
 
 export const AddEmployeeDialog = ({ open, onOpenChange, nextEmpNo }: AddEmployeeDialogProps) => {
   const { createEmployeeMutation } = useEmployeeMutations();
@@ -29,7 +30,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, nextEmpNo }: AddEmployee
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      empno: nextEmpNo,
+      empno: "",
       lastname: "",
       firstname: "",
       gender: "",
@@ -38,6 +39,13 @@ export const AddEmployeeDialog = ({ open, onOpenChange, nextEmpNo }: AddEmployee
       sepdate: null,
     },
   });
+
+  // Update the empno field value when the nextEmpNo prop changes or when the dialog opens
+  useEffect(() => {
+    if (open && nextEmpNo) {
+      form.setValue("empno", nextEmpNo);
+    }
+  }, [nextEmpNo, open, form]);
 
   const onSubmit = (data: EmployeeFormValues) => {
     createEmployeeMutation.mutate(data, {
