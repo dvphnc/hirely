@@ -34,3 +34,10 @@ export interface DeleteEmployeeDialogProps {
   onConfirmDelete: () => void;
   isDeleting: boolean;
 }
+
+export interface EmployeeSearchProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  showInactive: boolean;
+  onShowInactiveChange: (value: boolean) => void;
+}
