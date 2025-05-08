@@ -35,6 +35,21 @@ import { ProfileWithEmail, UserPermission, MANAGED_TABLES } from "@/types/UserMa
 // Define types for the tables
 const tables = MANAGED_TABLES;
 
+// Define actual admin emails
+const ADMIN_EMAILS = {
+  "16b7d447-a1ce-4ee2-843f-ca8f7d4e1a24": "jdsoffcl@gmail.com",
+  "kennethadmin": "kennethroyvillamayor57000@gmail.com"
+};
+
+// Define employee emails
+const EMPLOYEE_EMAILS = {
+  "71fe4204-78d7-45b7-9180-f8d61ca5f4d9": "employee1@example.com",
+  "7b926c51-4a5f-4229-8e6a-1d2c09ba3a9b": "employee2@example.com",
+  "f9934772-8419-43a2-b3c1-ea8e8fc5a41d": "employee3@example.com",
+  "cb9ae36a-a1db-489f-9379-523c9187b92b": "employee4@example.com",
+  "17ae5ffe-39f5-44ca-96f1-56963d1c762d": "regularuser@example.com",
+};
+
 const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
@@ -73,22 +88,26 @@ const UserManagement = () => {
       
       if (profilesError) throw profilesError;
       
-      // Get known user emails from local storage or another accessible source
-      const knownUsers = [
-        { id: "16b7d447-a1ce-4ee2-843f-ca8f7d4e1a24", email: "admin@example.com", role: "admin" },
-        { id: "71fe4204-78d7-45b7-9180-f8d61ca5f4d9", email: "employee1@example.com", role: "user" },
-        { id: "7b926c51-4a5f-4229-8e6a-1d2c09ba3a9b", email: "employee2@example.com", role: "user" },
-        { id: "f9934772-8419-43a2-b3c1-ea8e8fc5a41d", email: "employee3@example.com", role: "user" },
-        { id: "cb9ae36a-a1db-489f-9379-523c9187b92b", email: "employee4@example.com", role: "user" },
-        { id: "17ae5ffe-39f5-44ca-96f1-56963d1c762d", email: "regularuser@example.com", role: "user" },
-      ];
-      
-      // Combine profiles with known emails
+      // Map profiles with known emails
       return profiles?.map(profile => {
-        const knownUser = knownUsers.find(u => u.id === profile.id);
+        let email;
+        
+        // Check if this is an admin user
+        if (ADMIN_EMAILS[profile.id]) {
+          email = ADMIN_EMAILS[profile.id];
+        } 
+        // Check if this is an employee user
+        else if (EMPLOYEE_EMAILS[profile.id]) {
+          email = EMPLOYEE_EMAILS[profile.id];
+        } 
+        // Fallback email
+        else {
+          email = `user-${profile.id.slice(0, 8)}@example.com`;
+        }
+        
         return {
           id: profile.id,
-          email: knownUser?.email || `user-${profile.id.slice(0, 8)}@example.com`, // Fallback email
+          email: email,
           role: profile.role,
           created_at: profile.created_at,
           updated_at: profile.updated_at
@@ -199,6 +218,13 @@ const UserManagement = () => {
     },
   });
 
+  // Helper function to get user email by ID
+  const getUserEmailById = (id: string): string => {
+    if (ADMIN_EMAILS[id]) return ADMIN_EMAILS[id];
+    if (EMPLOYEE_EMAILS[id]) return EMPLOYEE_EMAILS[id];
+    return `user-${id.slice(0, 8)}@example.com`;
+  };
+
   const handleOpenRoleDialog = (user: ProfileWithEmail) => {
     setSelectedUser(user);
     setSelectedRole(user.role);
@@ -286,6 +312,17 @@ const UserManagement = () => {
     }
   };
 
+  // Format timestamp for better readability
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -315,13 +352,14 @@ const UserManagement = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Created At</TableHead>
+                    <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-10">
+                      <TableCell colSpan={5} className="text-center py-10">
                         Loading users...
                       </TableCell>
                     </TableRow>
@@ -336,7 +374,10 @@ const UserManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(userProfile.created_at).toLocaleDateString()}
+                          {formatTimestamp(userProfile.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {formatTimestamp(userProfile.updated_at)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -365,7 +406,7 @@ const UserManagement = () => {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="text-center py-10 text-muted-foreground"
                       >
                         No users found
