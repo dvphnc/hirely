@@ -17,11 +17,19 @@ export const useEmployeeMutations = () => {
       
       const { data, error } = await supabase
         .from('employee')
-        .insert([{
-          ...newEmployee,
-          status: 'added',
-          stamp: new Date().toISOString()
-        }])
+        .insert([
+          {
+            empno: newEmployee.empno,
+            firstname: newEmployee.firstname,
+            lastname: newEmployee.lastname,
+            gender: newEmployee.gender,
+            birthdate: newEmployee.birthdate,
+            hiredate: newEmployee.hiredate,
+            sepdate: newEmployee.sepdate,
+            status: 'added',
+            stamp: new Date().toISOString()
+          }
+        ])
         .select();
 
       if (error) throw error;
@@ -47,7 +55,12 @@ export const useEmployeeMutations = () => {
       const { data, error } = await supabase
         .from('employee')
         .update({ 
-          ...employee,
+          firstname: employee.firstname,
+          lastname: employee.lastname,
+          gender: employee.gender,
+          birthdate: employee.birthdate,
+          hiredate: employee.hiredate,
+          sepdate: employee.sepdate,
           status: 'edited',
           stamp: new Date().toISOString()
         })
