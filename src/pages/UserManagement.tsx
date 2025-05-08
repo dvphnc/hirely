@@ -35,26 +35,11 @@ import { ProfileWithEmail, UserPermission, MANAGED_TABLES } from "@/types/UserMa
 // Define types for the tables
 const tables = MANAGED_TABLES;
 
-// Define actual admin emails
-const ADMIN_EMAILS = {
-  "16b7d447-a1ce-4ee2-843f-ca8f7d4e1a24": "jdsoffcl@gmail.com",
-  "kennethadmin": "kennethroyvillamayor57000@gmail.com"
-};
-
-// Define employee emails
-const EMPLOYEE_EMAILS = {
-  "71fe4204-78d7-45b7-9180-f8d61ca5f4d9": "employee1@example.com",
-  "7b926c51-4a5f-4229-8e6a-1d2c09ba3a9b": "employee2@example.com",
-  "f9934772-8419-43a2-b3c1-ea8e8fc5a41d": "employee3@example.com",
-  "cb9ae36a-a1db-489f-9379-523c9187b92b": "employee4@example.com",
-  "17ae5ffe-39f5-44ca-96f1-56963d1c762d": "regularuser@example.com",
-};
-
 const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
-  const { setSpecificUserAsRegular } = useUserManagement();
+  const { setSpecificUserAsRegular, userEmails, isLoadingEmails } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -88,22 +73,10 @@ const UserManagement = () => {
       
       if (profilesError) throw profilesError;
       
-      // Map profiles with known emails
+      // Map profiles with actual emails from the userEmails object
       return profiles?.map(profile => {
-        let email;
-        
-        // Check if this is an admin user
-        if (ADMIN_EMAILS[profile.id]) {
-          email = ADMIN_EMAILS[profile.id];
-        } 
-        // Check if this is an employee user
-        else if (EMPLOYEE_EMAILS[profile.id]) {
-          email = EMPLOYEE_EMAILS[profile.id];
-        } 
-        // Fallback email
-        else {
-          email = `user-${profile.id.slice(0, 8)}@example.com`;
-        }
+        // Use email from userEmails if available, otherwise use fallback
+        let email = userEmails?.[profile.id] || `user-${profile.id.slice(0, 8)}@example.com`;
         
         return {
           id: profile.id,
@@ -114,7 +87,7 @@ const UserManagement = () => {
         } as ProfileWithEmail;
       }) || [];
     },
-    enabled: isAdmin,
+    enabled: isAdmin && !isLoadingEmails,
   });
 
   // Subscribe to realtime updates for the profiles table
@@ -170,7 +143,7 @@ const UserManagement = () => {
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
       const { error } = await supabase
         .from("profiles")
-        .update({ role })
+        .update({ role, updated_at: new Date().toISOString() })
         .eq("id", userId);
       
       if (error) throw error;
@@ -199,6 +172,7 @@ const UserManagement = () => {
             can_add: permission.can_add,
             can_edit: permission.can_edit,
             can_delete: permission.can_delete,
+            updated_at: new Date().toISOString()
           }, {
             onConflict: 'user_id,table_name'
           });
@@ -217,13 +191,6 @@ const UserManagement = () => {
       toast.error(`Error updating permissions: ${error.message}`);
     },
   });
-
-  // Helper function to get user email by ID
-  const getUserEmailById = (id: string): string => {
-    if (ADMIN_EMAILS[id]) return ADMIN_EMAILS[id];
-    if (EMPLOYEE_EMAILS[id]) return EMPLOYEE_EMAILS[id];
-    return `user-${id.slice(0, 8)}@example.com`;
-  };
 
   const handleOpenRoleDialog = (user: ProfileWithEmail) => {
     setSelectedUser(user);
@@ -323,6 +290,17 @@ const UserManagement = () => {
     });
   };
 
+  // Loading state when fetching emails
+  if (isLoadingEmails) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading user data...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
@@ -353,13 +331,14 @@ const UserManagement = () => {
                     <TableHead>Role</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead>Last Updated</TableHead>
+                    <TableHead>Updated By</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10">
+                      <TableCell colSpan={6} className="text-center py-10">
                         Loading users...
                       </TableCell>
                     </TableRow>
@@ -378,6 +357,9 @@ const UserManagement = () => {
                         </TableCell>
                         <TableCell>
                           {formatTimestamp(userProfile.updated_at)}
+                        </TableCell>
+                        <TableCell>
+                          {userEmails ? (user?.id && userEmails[user.id] || 'System') : 'System'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -406,7 +388,7 @@ const UserManagement = () => {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-10 text-muted-foreground"
                       >
                         No users found
