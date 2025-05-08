@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,21 +152,45 @@ const Departments = () => {
     },
   });
 
-  // Restore department function
-  const handleRestoreDepartment = async (department: Department) => {
-    try {
-      await supabase
-        .from('department')
-        .update({ 
+  // Restore department mutation
+  const restoreDepartmentMutation = useMutation({
+    mutationFn: async (deptcode: string) => {
+      const { error } = await supabase
+        .from("department")
+        .update({
           status: 'restored',
           stamp: new Date().toISOString()
         })
-        .eq('deptcode', department.deptcode);
+        .eq("deptcode", deptcode);
       
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
       toast.success("Department restored successfully");
-      refetch();
-    } catch (error: any) {
+    },
+    onError: (error) => {
       toast.error(`Error restoring department: ${error.message}`);
+    },
+  });
+
+  // Handle restore department
+  const handleRestoreDepartment = (department: Department) => {
+    restoreDepartmentMutation.mutate(department.deptcode);
+  };
+
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
     }
   };
 
@@ -322,7 +345,7 @@ const Departments = () => {
                   <TableBody>
                     {filteredDepartments && filteredDepartments.length > 0 ? (
                       filteredDepartments.map((department) => (
-                        <TableRow key={department.deptcode}>
+                        <TableRow key={department.deptcode} className={department.status === 'deleted' ? "bg-muted/30" : ""}>
                           <TableCell className="font-medium">{department.deptcode}</TableCell>
                           <TableCell>{department.deptname || "N/A"}</TableCell>
                           {isAdmin && (
@@ -341,7 +364,7 @@ const Departments = () => {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {department.stamp ? new Date(department.stamp).toLocaleDateString() : 'N/A'}
+                                {department.stamp ? formatDateTime(department.stamp) : 'N/A'}
                               </TableCell>
                             </>
                           )}

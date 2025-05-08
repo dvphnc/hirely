@@ -14,8 +14,6 @@ import { DeleteEmployeeDialog } from "@/components/Employees/components/DeleteEm
 import { EmployeeSearch } from "@/components/Employees/components/EmployeeSearch";
 import { EmployeeTable } from "@/components/Employees/components/EmployeeTable";
 import { usePermission, useAuth } from "@/context/auth-context";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const Employees = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -40,7 +38,7 @@ const Employees = () => {
     refetch
   } = useEmployeeData();
 
-  const { deleteEmployeeMutation } = useEmployeeMutations();
+  const { deleteEmployeeMutation, restoreEmployeeMutation } = useEmployeeMutations();
 
   const handleEditClick = (employee: Employee) => {
     setCurrentEmployee(employee);
@@ -68,21 +66,12 @@ const Employees = () => {
     }
   };
   
-  const handleRestoreEmployee = async (employee: Employee) => {
-    try {
-      await supabase
-        .from('employee')
-        .update({ 
-          status: 'restored',
-          stamp: new Date().toISOString()
-        })
-        .eq('empno', employee.empno);
-      
-      toast.success("Employee restored successfully");
-      refetch();
-    } catch (error: any) {
-      toast.error(`Error restoring employee: ${error.message}`);
-    }
+  const handleRestoreEmployee = (employee: Employee) => {
+    restoreEmployeeMutation.mutate(employee.empno, {
+      onSuccess: () => {
+        refetch();
+      }
+    });
   };
 
   if (error) {

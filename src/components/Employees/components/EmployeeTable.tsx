@@ -42,6 +42,15 @@ export const EmployeeTable = ({
     }
   };
 
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "yyyy-MMM-dd HH:mm");
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center py-8">Loading employees...</div>;
   }
@@ -111,7 +120,7 @@ export const EmployeeTable = ({
                     </span>
                   </TableCell>
                   <TableCell>
-                    {employee.stamp ? formatDate(employee.stamp) : 'N/A'}
+                    {employee.stamp ? formatDateTime(employee.stamp) : 'N/A'}
                   </TableCell>
                 </>
               )}

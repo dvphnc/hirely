@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,22 +152,31 @@ const Jobs = () => {
     },
   });
 
-  // Restore job function
-  const handleRestoreJob = async (job: Job) => {
-    try {
-      await supabase
-        .from('job')
-        .update({ 
+  // Restore job mutation
+  const restoreJobMutation = useMutation({
+    mutationFn: async (jobcode: string) => {
+      const { error } = await supabase
+        .from("job")
+        .update({
           status: 'restored',
           stamp: new Date().toISOString()
         })
-        .eq('jobcode', job.jobcode);
+        .eq("jobcode", jobcode);
       
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
       toast.success("Job restored successfully");
-      refetch();
-    } catch (error: any) {
+    },
+    onError: (error) => {
       toast.error(`Error restoring job: ${error.message}`);
-    }
+    },
+  });
+
+  // Handle restore job
+  const handleRestoreJob = (job: Job) => {
+    restoreJobMutation.mutate(job.jobcode);
   };
 
   const filteredJobs = jobs?.filter((job) => {
@@ -211,6 +219,21 @@ const Jobs = () => {
   const handleDeleteClick = (job: Job) => {
     setCurrentJob(job);
     setIsDeleteOpen(true);
+  };
+
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
   };
 
   return (
@@ -322,7 +345,7 @@ const Jobs = () => {
                   <TableBody>
                     {filteredJobs && filteredJobs.length > 0 ? (
                       filteredJobs.map((job) => (
-                        <TableRow key={job.jobcode}>
+                        <TableRow key={job.jobcode} className={job.status === 'deleted' ? "bg-muted/30" : ""}>
                           <TableCell className="font-medium">{job.jobcode}</TableCell>
                           <TableCell>{job.jobdesc || "N/A"}</TableCell>
                           {isAdmin && (
@@ -341,7 +364,7 @@ const Jobs = () => {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {job.stamp ? new Date(job.stamp).toLocaleDateString() : 'N/A'}
+                                {job.stamp ? formatDateTime(job.stamp) : 'N/A'}
                               </TableCell>
                             </>
                           )}

@@ -102,9 +102,32 @@ export const useEmployeeMutations = () => {
     }
   });
 
+  // Restore mutation
+  const restoreEmployeeMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { error } = await supabase
+        .from('employee')
+        .update({ 
+          status: 'restored',
+          stamp: new Date().toISOString()
+        })
+        .eq('empno', employeeId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee restored successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Error restoring employee: ${error.message}`);
+    }
+  });
+
   return { 
     createEmployeeMutation, 
     updateEmployeeMutation, 
-    deleteEmployeeMutation 
+    deleteEmployeeMutation,
+    restoreEmployeeMutation
   };
 };
