@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { APP_VERSION } from "@/lib/version";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -93,6 +94,10 @@ const SignIn = () => {
                 <Link to="/signup" className="text-primary font-semibold hover:underline">
                   Sign Up
                 </Link>
+              </div>
+              
+              <div className="text-center text-xs text-muted-foreground mt-4">
+                Version {APP_VERSION}
               </div>
             </CardFooter>
           </form>
