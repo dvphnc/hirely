@@ -14,16 +14,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -38,7 +28,7 @@ import {
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Search, UserCog, Shield, ShieldAlert, ShieldCheck, Trash } from "lucide-react";
+import { Search, UserCog, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { UserRole } from "@/context/auth-context";
 import { ProfileWithEmail, UserPermission, MANAGED_TABLES } from "@/types/UserManagement";
 
@@ -54,7 +44,6 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
 
@@ -163,37 +152,6 @@ const UserManagement = () => {
     },
   });
 
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      // First delete the profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      
-      if (profileError) throw profileError;
-
-      // Then delete from auth.users using the edge function
-      const { error } = await supabase.functions.invoke('delete-user', {
-        body: { userId }
-      });
-      
-      if (error) throw error;
-      return userId;
-    },
-    onSuccess: (userId) => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success('User deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setSelectedUser(null);
-    },
-    onError: (error: any) => {
-      toast.error(`Error deleting user: ${error.message}`);
-      console.error("Error deleting user:", error);
-    },
-  });
-
   // Update user permissions mutation
   const updatePermissionsMutation = useMutation({
     mutationFn: async (updatedPermissions: UserPermission[]) => {
@@ -281,20 +239,6 @@ const UserManagement = () => {
   const handleUpdatePermissions = () => {
     if (permissions.length > 0) {
       updatePermissionsMutation.mutate(permissions);
-    }
-  };
-
-  const handleOpenDeleteDialog = (user: ProfileWithEmail) => {
-    setSelectedUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteUser = () => {
-    if (selectedUser && selectedUser.id !== user?.id) {
-      deleteUserMutation.mutate(selectedUser.id);
-    } else if (selectedUser?.id === user?.id) {
-      toast.error("You cannot delete your own account");
-      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -429,15 +373,6 @@ const UserManagement = () => {
                             >
                               <UserCog className="h-4 w-4" />
                               Permissions
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => handleOpenDeleteDialog(userProfile)}
-                            >
-                              <Trash className="h-4 w-4" />
-                              Delete
                             </Button>
                           </div>
                         </TableCell>
@@ -589,28 +524,6 @@ const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete User Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedUser?.email}? This action cannot be undone and will permanently remove the user's account and all associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-500 hover:bg-red-600"
-              onClick={handleDeleteUser}
-              disabled={deleteUserMutation.isPending}
-            >
-              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DashboardLayout>
   );
 };
