@@ -44,40 +44,16 @@ export const useUserManagement = () => {
     },
   });
 
-  // Set the specified user to regular role
+  // No longer needed - Removing this function as requested
   const setSpecificUserAsRegular = useCallback(async () => {
-    try {
-      const targetUserId = '17ae5ffe-39f5-44ca-96f1-56963d1c762d';
-      
-      // First check if this user's profile exists and what their current role is
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', targetUserId)
-        .single();
-      
-      if (profileError && profileError.code !== 'PGRST116') {
-        // Error other than "not found"
-        console.error("Failed to check user profile:", profileError);
-        return;
-      }
-
-      // If user doesn't exist or is not already a regular user, update the role
-      if (!profileData || profileData.role !== 'user') {
-        await setUserRole.mutateAsync({ 
-          userId: targetUserId, 
-          role: 'user' 
-        });
-      }
-    } catch (error) {
-      console.error("Failed to set specific user role:", error);
-    }
-  }, [setUserRole]);
+    // This function is intentionally left empty
+    // The functionality to set a specific user as regular has been removed
+  }, []);
 
   return {
     userEmails,
     isLoadingEmails,
     setUserRole,
-    setSpecificUserAsRegular
+    setSpecificUserAsRegular // Keeping the function reference to avoid breaking code
   };
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -39,7 +38,7 @@ const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
-  const { setSpecificUserAsRegular, userEmails, isLoadingEmails } = useUserManagement();
+  const { userEmails, isLoadingEmails } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -54,13 +53,6 @@ const UserManagement = () => {
       toast.error("You don't have permission to access this page");
     }
   }, [isAdmin, navigate]);
-
-  // Set specific user as regular user when component mounts
-  useEffect(() => {
-    if (isAdmin) {
-      setSpecificUserAsRegular();
-    }
-  }, [isAdmin, setSpecificUserAsRegular]);
 
   // Fetch profiles with user emails
   const { data: users, isLoading } = useQuery({

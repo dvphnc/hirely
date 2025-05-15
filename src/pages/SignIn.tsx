@@ -9,11 +9,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { APP_VERSION } from "@/lib/version";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetSent, setIsResetSent] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -23,6 +29,44 @@ const SignIn = () => {
     const success = await login(email, password);
     if (success) {
       navigate("/dashboard");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      toast({
+        variant: "destructive",
+        title: "Email required",
+        description: "Please enter your email address.",
+      });
+      return;
+    }
+
+    try {
+      setIsResetting(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setIsResetSent(true);
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for the password reset link.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send password reset email.",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -42,65 +86,129 @@ const SignIn = () => {
             </CardDescription>
           </CardHeader>
           
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <a className="text-sm text-primary hover:underline" href="#">
-                    Forgot password?
-                  </a>
+          {!isResetOpen ? (
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </CardContent>
-            
-            <CardFooter className="flex flex-col space-y-4">
-              <Button 
-                type="submit" 
-                className="w-full instagram-gradient" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <button 
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setIsResetOpen(true)}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </CardContent>
               
-              <div className="text-center text-sm">
-                Don't have an account?{" "}
-                <Link to="/signup" className="text-primary font-semibold hover:underline">
-                  Sign Up
-                </Link>
-              </div>
+              <CardFooter className="flex flex-col space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full instagram-gradient" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+                
+                <div className="text-center text-sm">
+                  Don't have an account?{" "}
+                  <Link to="/signup" className="text-primary font-semibold hover:underline">
+                    Sign Up
+                  </Link>
+                </div>
+                
+                <div className="text-center text-xs text-muted-foreground mt-4">
+                  Version {APP_VERSION}
+                </div>
+              </CardFooter>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword}>
+              <CardContent className="space-y-4">
+                {isResetSent ? (
+                  <Alert>
+                    <AlertDescription>
+                      Password reset email sent. Please check your inbox.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Enter your email address and we'll send you a link to reset your password.
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="resetEmail">Email</Label>
+                      <Input
+                        id="resetEmail"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
               
-              <div className="text-center text-xs text-muted-foreground mt-4">
-                Version {APP_VERSION}
-              </div>
-            </CardFooter>
-          </form>
+              <CardFooter className="flex flex-col space-y-4">
+                {!isResetSent && (
+                  <Button 
+                    type="submit" 
+                    className="w-full instagram-gradient" 
+                    disabled={isResetting}
+                  >
+                    {isResetting ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                )}
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => {
+                    setIsResetOpen(false);
+                    setIsResetSent(false);
+                    setResetEmail("");
+                  }}
+                >
+                  Back to Sign In
+                </Button>
+                
+                <div className="text-center text-xs text-muted-foreground mt-4">
+                  Version {APP_VERSION}
+                </div>
+              </CardFooter>
+            </form>
+          )}
         </Card>
       </div>
     </div>
