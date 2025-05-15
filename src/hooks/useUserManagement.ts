@@ -44,16 +44,9 @@ export const useUserManagement = () => {
     },
   });
 
-  // No longer needed - Removing this function as requested
-  const setSpecificUserAsRegular = useCallback(async () => {
-    // This function is intentionally left empty
-    // The functionality to set a specific user as regular has been removed
-  }, []);
-
   return {
     userEmails,
     isLoadingEmails,
     setUserRole,
-    setSpecificUserAsRegular // Keeping the function reference to avoid breaking code
   };
 };
