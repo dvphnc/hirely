@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -78,8 +79,8 @@ const UserManagement = () => {
       
       // Map profiles with actual emails from the userEmails object
       return profiles?.map(profile => {
-        // Use email from userEmails if available, otherwise use fallback
-        let email = userEmails?.[profile.id] || `user-${profile.id.slice(0, 8)}@example.com`;
+        // Get email from userEmails if available, or use empty placeholder
+        let email = userEmails?.[profile.id] || "(Email unavailable)";
         
         return {
           id: profile.id,
