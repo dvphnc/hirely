@@ -39,13 +39,13 @@ serve(async (req) => {
       "kennethadmin": "kennethroyvillamayor57000@gmail.com"
     };
     
-    // Add known employee emails
+    // Add known employee emails - removed regularuser@example.com
     const employeeEmails = {
       "71fe4204-78d7-45b7-9180-f8d61ca5f4d9": "employee1@example.com",
       "7b926c51-4a5f-4229-8e6a-1d2c09ba3a9b": "employee2@example.com",
       "f9934772-8419-43a2-b3c1-ea8e8fc5a41d": "employee3@example.com",
       "cb9ae36a-a1db-489f-9379-523c9187b92b": "employee4@example.com",
-      "17ae5ffe-39f5-44ca-96f1-56963d1c762d": "regularuser@example.com",
+      // Removed regularuser@example.com entry
     };
     
     // Override with known emails
