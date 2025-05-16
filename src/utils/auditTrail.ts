@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  * @param userData Optional additional data to update along with audit information
  */
 export const updateAuditTrail = async (
-  tableName: string, 
+  tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
   id: string | number, 
   primaryKeyField: string,
   userData?: Record<string, any>
