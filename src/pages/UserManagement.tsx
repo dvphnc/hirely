@@ -84,8 +84,8 @@ const UserManagement = () => {
     queryFn: async () => {
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*");
+      .from("profiles")
+      .select("id, role, created_at, updated_at, updated_by");
       
       if (profilesError) throw profilesError;
       
