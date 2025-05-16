@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Search, UserCog, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Search, UserCog, Shield, ShieldAlert, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
 import { UserRole } from "@/context/auth-context";
 import { ProfileWithEmail, UserPermission, MANAGED_TABLES } from "@/types/UserManagement";
 
@@ -39,11 +39,12 @@ const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const queryClient = useQueryClient();
-  const { userEmails, isLoadingEmails } = useUserManagement();
+  const { userEmails, isLoadingEmails, setUserRole, deleteUser } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
 
@@ -54,6 +55,28 @@ const UserManagement = () => {
       toast.error("You don't have permission to access this page");
     }
   }, [isAdmin, navigate]);
+
+  // Fix for the "Manage Users" tab disappearing issue
+  useEffect(() => {
+    // Check admin status when the component mounts or window gets focus
+    const handleFocus = () => {
+      if (user) {
+        // Refresh user data to ensure admin status is correctly recognized
+        supabase.auth.refreshSession().then(() => {
+          // Force a re-render by invalidating relevant queries
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+        });
+      }
+    };
+
+    // Listen for window focus events
+    window.addEventListener('focus', handleFocus);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user, queryClient]);
 
   // Fetch profiles with user emails
   const { data: users, isLoading } = useQuery({
@@ -76,11 +99,54 @@ const UserManagement = () => {
           email: email,
           role: profile.role,
           created_at: profile.created_at,
-          updated_at: profile.updated_at
+          updated_at: profile.updated_at,
+          updated_by: profile.updated_by
         } as ProfileWithEmail;
       }) || [];
     },
     enabled: isAdmin && !isLoadingEmails,
+  });
+
+  // Get updated_by user emails
+  const { data: updatedByEmails } = useQuery({
+    queryKey: ['updated-by-emails'],
+    queryFn: async () => {
+      const uniqueUserIds = new Set<string>();
+      
+      // Collect all unique user IDs from updated_by fields
+      users?.forEach(u => {
+        if (u.updated_by) uniqueUserIds.add(u.updated_by);
+      });
+      
+      // If no updated_by IDs, return empty object
+      if (uniqueUserIds.size === 0) return {};
+      
+      // For each unique ID, get the email if not already in userEmails
+      const result: Record<string, string> = {};
+      const promises: Promise<void>[] = [];
+      
+      uniqueUserIds.forEach(id => {
+        if (!userEmails?.[id]) {
+          promises.push(
+            supabase.functions.invoke('get-user-emails', {
+              body: { userIds: [id] }
+            }).then(({ data }) => {
+              if (data && data[id]) {
+                result[id] = data[id];
+              }
+            }).catch(error => {
+              console.error('Error fetching email for user:', id, error);
+            })
+          );
+        } else if (userEmails[id]) {
+          result[id] = userEmails[id];
+        }
+      });
+      
+      await Promise.all(promises);
+      return result;
+    },
+    enabled: !!users && !!userEmails,
   });
 
   // Subscribe to realtime updates for the profiles table
@@ -131,30 +197,11 @@ const UserManagement = () => {
     };
   }, [isAdmin, queryClient]);
 
-  // Update user role mutation
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role, updated_at: new Date().toISOString() })
-        .eq("id", userId);
-      
-      if (error) throw error;
-      return { userId, role };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success(`User role updated to ${data.role}`);
-      setIsRoleDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast.error(`Error updating role: ${error.message}`);
-    },
-  });
-
   // Update user permissions mutation
   const updatePermissionsMutation = useMutation({
     mutationFn: async (updatedPermissions: UserPermission[]) => {
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      
       for (const permission of updatedPermissions) {
         const { error } = await supabase
           .from("user_permissions")
@@ -165,7 +212,8 @@ const UserManagement = () => {
             can_add: permission.can_add,
             can_edit: permission.can_edit,
             can_delete: permission.can_delete,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            updated_by: currentUser?.id
           }, {
             onConflict: 'user_id,table_name'
           });
@@ -193,7 +241,7 @@ const UserManagement = () => {
 
   const handleUpdateRole = () => {
     if (selectedUser) {
-      updateRoleMutation.mutate({
+      setUserRole.mutate({
         userId: selectedUser.id,
         role: selectedRole
       });
@@ -242,6 +290,22 @@ const UserManagement = () => {
     }
   };
 
+  const handleOpenDeleteDialog = (user: ProfileWithEmail) => {
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = () => {
+    if (selectedUser) {
+      deleteUser.mutate(selectedUser.id, {
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setSelectedUser(null);
+        }
+      });
+    }
+  };
+
   const updatePermission = (
     tableIndex: number,
     field: 'can_add' | 'can_edit' | 'can_delete',
@@ -281,6 +345,14 @@ const UserManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Get the email of the user who last updated a record
+  const getUpdaterEmail = (updatedById: string | undefined) => {
+    if (!updatedById) return 'System';
+    
+    // Try to find the email in userEmails or updatedByEmails
+    return (userEmails?.[updatedById] || updatedByEmails?.[updatedById] || 'Unknown User');
   };
 
   // Loading state when fetching emails
@@ -352,7 +424,7 @@ const UserManagement = () => {
                           {formatTimestamp(userProfile.updated_at)}
                         </TableCell>
                         <TableCell>
-                          {userEmails ? (user?.id && userEmails[user.id] || 'System') : 'System'}
+                          {getUpdaterEmail(userProfile.updated_by)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -373,6 +445,16 @@ const UserManagement = () => {
                             >
                               <UserCog className="h-4 w-4" />
                               Permissions
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-destructive hover:text-destructive"
+                              onClick={() => handleOpenDeleteDialog(userProfile)}
+                              disabled={userProfile.id === user?.id} // Prevent deleting self
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
                             </Button>
                           </div>
                         </TableCell>
@@ -434,9 +516,9 @@ const UserManagement = () => {
             </Button>
             <Button
               onClick={handleUpdateRole}
-              disabled={updateRoleMutation.isPending}
+              disabled={setUserRole.isPending}
             >
-              {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
+              {setUserRole.isPending ? "Updating..." : "Update Role"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -520,6 +602,42 @@ const UserManagement = () => {
               disabled={updatePermissionsMutation.isPending}
             >
               {updatePermissionsMutation.isPending ? "Saving..." : "Save Permissions"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the user account and remove all their data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="font-medium">Are you sure you want to delete this user?</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Email: {selectedUser?.email}
+            </p>
+          </div>
+          <DialogFooter className="sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteUser}
+              disabled={deleteUser.isPending}
+            >
+              {deleteUser.isPending ? "Deleting..." : "Delete User"}
             </Button>
           </DialogFooter>
         </DialogContent>

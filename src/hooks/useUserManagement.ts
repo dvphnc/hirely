@@ -28,7 +28,7 @@ export const useUserManagement = () => {
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ role, updated_at: new Date().toISOString() })
+        .update({ role, updated_at: new Date().toISOString(), updated_by: (await supabase.auth.getUser()).data.user?.id })
         .eq('id', userId);
       
       if (error) throw error;
@@ -44,9 +44,30 @@ export const useUserManagement = () => {
     },
   });
 
+  // Delete a user completely (only available to admins)
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success("User deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(`Error deleting user: ${error.message}`);
+      console.error("Error deleting user:", error);
+    },
+  });
+
   return {
     userEmails,
     isLoadingEmails,
     setUserRole,
+    deleteUser,
   };
 };

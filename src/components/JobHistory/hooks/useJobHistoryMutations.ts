@@ -3,12 +3,20 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
+import { usePermission } from "@/context/auth-context";
+import { updateAuditTrail } from "@/utils/auditTrail";
 
 export const useJobHistoryMutations = (employeeEmpno: string | null | undefined) => {
   const queryClient = useQueryClient();
+  const { canAdd, canEdit, canDelete } = usePermission('jobhistory');
 
   const createJobHistoryMutation = useMutation({
     mutationFn: async (newJobHistory: JobHistoryFormValues) => {
+      // Check permissions before allowing the action
+      if (!canAdd) {
+        throw new Error("You don't have permission to add job history records");
+      }
+
       const jobHistoryToInsert = {
         empno: newJobHistory.empno,
         jobcode: newJobHistory.jobcode,
@@ -23,6 +31,16 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         .select();
       
       if (error) throw new Error(error.message);
+      
+      // Add audit trail
+      if (data && data[0]) {
+        await updateAuditTrail(
+          "jobhistory", 
+          `${data[0].empno}-${data[0].jobcode}-${data[0].effdate}`, 
+          "combined_id"
+        );
+      }
+      
       return data[0];
     },
     onSuccess: () => {
@@ -36,6 +54,11 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
 
   const updateJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryFormValues) => {
+      // Check permissions before allowing the action
+      if (!canEdit) {
+        throw new Error("You don't have permission to edit job history records");
+      }
+      
       const jobHistoryToUpdate = {
         empno: jobHistory.empno,
         jobcode: jobHistory.jobcode,
@@ -53,6 +76,16 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         .select();
       
       if (error) throw new Error(error.message);
+      
+      // Add audit trail
+      if (data && data[0]) {
+        await updateAuditTrail(
+          "jobhistory", 
+          `${data[0].empno}-${data[0].jobcode}-${data[0].effdate}`, 
+          "combined_id"
+        );
+      }
+      
       return data[0];
     },
     onSuccess: () => {
@@ -66,6 +99,11 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
 
   const deleteJobHistoryMutation = useMutation({
     mutationFn: async (jobHistory: JobHistoryWithDetails) => {
+      // Check permissions before allowing the action
+      if (!canDelete) {
+        throw new Error("You don't have permission to delete job history records");
+      }
+      
       const { error } = await supabase
         .from("jobhistory")
         .delete()

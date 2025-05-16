@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { toast as sonnerToast } from 'sonner';
+import { MANAGED_TABLES } from '@/types/UserManagement';
 
 interface UserPermission {
   table_name: string;
@@ -19,6 +20,7 @@ interface UserProfile {
   role: UserRole;
   created_at: string;
   updated_at: string;
+  updated_by?: string;
 }
 
 interface AuthContextType {
@@ -70,9 +72,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (permissionsError) throw permissionsError;
 
-      if (permissionsData) {
-        setPermissions(permissionsData as UserPermission[]);
+      let userPermissions = permissionsData as UserPermission[] || [];
+      
+      // Check if we need to create default permissions
+      if (userPermissions.length === 0) {
+        // Create default permissions for a new user
+        const defaultPermissions = MANAGED_TABLES.map(table => ({
+          user_id: user.id,
+          table_name: table.name,
+          can_add: true,
+          can_edit: true,
+          can_delete: true
+        }));
+        
+        // If there are tables without permissions, create default ones
+        if (defaultPermissions.length > 0) {
+          const { error: insertError } = await supabase
+            .from('user_permissions')
+            .insert(defaultPermissions);
+            
+          if (!insertError) {
+            // Re-fetch permissions after creating defaults
+            const { data: refreshedPermissions } = await supabase
+              .from('user_permissions')
+              .select('*')
+              .eq('user_id', user.id);
+              
+            if (refreshedPermissions) {
+              userPermissions = refreshedPermissions;
+            }
+          }
+        }
       }
+      
+      setPermissions(userPermissions);
     } catch (error: any) {
       console.error('Error fetching user data:', error);
     }
@@ -160,10 +193,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .from('user_permissions')
           .select('*')
           .eq('user_id', data.user.id);
+        
+        let userPermissions = permissionsData as UserPermission[] || [];
+        
+        // If no permissions exist, create default permissions
+        if (!userPermissions || userPermissions.length === 0) {
+          // Create default permissions for all managed tables
+          const defaultPermissions = MANAGED_TABLES.map(table => ({
+            user_id: data.user.id,
+            table_name: table.name,
+            can_add: true,
+            can_edit: true,
+            can_delete: true
+          }));
           
-        if (permissionsData) {
-          setPermissions(permissionsData as UserPermission[]);
+          if (defaultPermissions.length > 0) {
+            await supabase.from('user_permissions').insert(defaultPermissions);
+            
+            // Re-fetch permissions after creating defaults
+            const { data: refreshedPermissions } = await supabase
+              .from('user_permissions')
+              .select('*')
+              .eq('user_id', data.user.id);
+              
+            if (refreshedPermissions) {
+              userPermissions = refreshedPermissions;
+            }
+          }
         }
+        
+        setPermissions(userPermissions);
 
         toast({
           title: "Logged in successfully",
