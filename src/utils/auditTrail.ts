@@ -29,6 +29,7 @@ export const updateAuditTrail = async (
   };
   
   // Update the record with audit information
+  // Using type assertion to avoid deep type instantiation error
   const { error } = await supabase
     .from(tableName)
     .update(updateData)
