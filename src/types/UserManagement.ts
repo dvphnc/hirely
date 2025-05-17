@@ -6,7 +6,7 @@ export interface UserProfile {
   role: UserRole;
   created_at: string;
   updated_at: string;
-  updated_by?: string;
+  updated_by: string | null;
 }
 
 export interface UserPermission {
@@ -18,7 +18,7 @@ export interface UserPermission {
   can_delete: boolean;
   created_at: string;
   updated_at: string;
-  updated_by?: string;
+  updated_by: string | null;
 }
 
 export interface ProfileWithEmail {
@@ -27,7 +27,7 @@ export interface ProfileWithEmail {
   email: string;
   created_at: string;
   updated_at: string;
-  updated_by?: string;
+  updated_by: string | null;
 }
 
 export interface TableInfo {

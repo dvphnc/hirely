@@ -26,9 +26,20 @@ export const useUserManagement = () => {
   // Set a specific user to a regular user role
   const setUserRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
+      const currentUser = await supabase.auth.getUser();
+      const currentUserId = currentUser.data.user?.id;
+      
+      if (!currentUserId) {
+        throw new Error("User not authenticated");
+      }
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ role, updated_at: new Date().toISOString(), updated_by: (await supabase.auth.getUser()).data.user?.id })
+        .update({ 
+          role, 
+          updated_at: new Date().toISOString(), 
+          updated_by: currentUserId 
+        })
         .eq('id', userId);
       
       if (error) throw error;
