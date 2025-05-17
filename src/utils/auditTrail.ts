@@ -13,16 +13,16 @@ export const updateAuditTrail = async (
   id: string | number, 
   primaryKeyField: string,
   userData?: Record<string, any>
-) => {
-  const currentUser = (await supabase.auth.getUser()).data.user;
-  const userId = currentUser?.id;
+): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
   
   if (!userId) return;
   
   const timestamp = new Date().toISOString();
   
   // Combine audit data with any additional user data
-  const updateData = {
+  const updateData: Record<string, unknown> = {
     updated_by: userId,
     updated_at: timestamp,
     ...userData
