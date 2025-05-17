@@ -25,7 +25,7 @@ export const updateAuditTrail = async (
   const updateData: Record<string, unknown> = {
     updated_by: userId,
     updated_at: timestamp,
-    ...userData
+    ...(userData || {})
   };
   
   // Update the record with audit information
@@ -38,3 +38,4 @@ export const updateAuditTrail = async (
     console.error(`Error updating audit trail for ${tableName}:`, error);
   }
 };
+
