@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -30,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Search, UserCog, Shield, ShieldAlert, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
 import { UserRole } from "@/context/auth-context";
-import { ProfileWithEmail, UserPermission, MANAGED_TABLES } from "@/types/UserManagement";
+import { ProfileWithEmail, UserPermission, MANAGED_TABLES, UserProfile } from "@/types/UserManagement";
 
 // Define types for the tables
 const tables = MANAGED_TABLES;
@@ -275,6 +274,7 @@ const UserManagement = () => {
           can_delete: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          updated_by: null
         });
       }
     });
