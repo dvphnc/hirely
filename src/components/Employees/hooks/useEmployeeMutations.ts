@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmployeeFormValues } from "../types/EmployeeTypes";
+import { updateAuditTrail } from "@/utils/auditTrail";
 
 export const useEmployeeMutations = () => {
   const queryClient = useQueryClient();
@@ -13,6 +14,13 @@ export const useEmployeeMutations = () => {
       // Ensure empno is present since it's required by the database
       if (!newEmployee.empno) {
         throw new Error("Employee number is required");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
       
       const { data, error } = await supabase
@@ -27,7 +35,9 @@ export const useEmployeeMutations = () => {
             hiredate: newEmployee.hiredate,
             sepdate: newEmployee.sepdate,
             status: 'added',
-            stamp: new Date().toISOString()
+            stamp: new Date().toISOString(),
+            updated_by: userId,
+            updated_at: new Date().toISOString()
           }
         ])
         .select();
@@ -52,23 +62,24 @@ export const useEmployeeMutations = () => {
         throw new Error("Employee number is required for updates");
       }
       
+      await updateAuditTrail('employee', employee.empno, 'empno', {
+        firstname: employee.firstname,
+        lastname: employee.lastname,
+        gender: employee.gender,
+        birthdate: employee.birthdate,
+        hiredate: employee.hiredate,
+        sepdate: employee.sepdate,
+        status: 'edited'
+      });
+      
       const { data, error } = await supabase
         .from('employee')
-        .update({ 
-          firstname: employee.firstname,
-          lastname: employee.lastname,
-          gender: employee.gender,
-          birthdate: employee.birthdate,
-          hiredate: employee.hiredate,
-          sepdate: employee.sepdate,
-          status: 'edited',
-          stamp: new Date().toISOString()
-        })
+        .select()
         .eq('empno', employee.empno)
-        .select();
+        .single();
 
       if (error) throw error;
-      return data[0];
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -83,15 +94,18 @@ export const useEmployeeMutations = () => {
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
       // Soft delete - update status to deleted
-      const { error } = await supabase
+      await updateAuditTrail('employee', employeeId, 'empno', {
+        status: 'deleted'
+      });
+      
+      const { data, error } = await supabase
         .from('employee')
-        .update({ 
-          status: 'deleted',
-          stamp: new Date().toISOString()
-        })
-        .eq('empno', employeeId);
+        .select()
+        .eq('empno', employeeId)
+        .single();
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -105,15 +119,18 @@ export const useEmployeeMutations = () => {
   // Restore mutation
   const restoreEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
-      const { error } = await supabase
+      await updateAuditTrail('employee', employeeId, 'empno', {
+        status: 'restored'
+      });
+      
+      const { data, error } = await supabase
         .from('employee')
-        .update({ 
-          status: 'restored',
-          stamp: new Date().toISOString()
-        })
-        .eq('empno', employeeId);
+        .select()
+        .eq('empno', employeeId)
+        .single();
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });

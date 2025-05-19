@@ -12,7 +12,7 @@ export const updateAuditTrail = async (
   tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, any>
+  userData?: Record<string, unknown>
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
@@ -38,4 +38,3 @@ export const updateAuditTrail = async (
     console.error(`Error updating audit trail for ${tableName}:`, error);
   }
 };
-

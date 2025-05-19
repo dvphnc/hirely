@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, usePermission } from "@/context/auth-context";
 import { Label } from "@/components/ui/label";
+import { updateAuditTrail } from "@/utils/auditTrail";
+import { useUserManagement } from "@/hooks/useUserManagement";
 
 // Form schema for department validation
 const departmentSchema = z.object({
@@ -50,6 +53,7 @@ const Departments = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const { canAdd, canEdit, canDelete } = usePermission('department');
+  const { userEmails } = useUserManagement();
   
   const { data: departments, isLoading, error, refetch } = useQuery({
     queryKey: ["departments", showDeleted],
@@ -73,12 +77,19 @@ const Departments = () => {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
+      
       // Explicitly ensuring deptcode is required by creating a new object
       const departmentToInsert = {
         deptcode: newDepartment.deptcode, // This is required
         deptname: newDepartment.deptname,  // This is also required due to our schema
         status: 'added',
-        stamp: new Date().toISOString()
+        stamp: new Date().toISOString(),
+        updated_by: userId,
+        updated_at: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -102,22 +113,19 @@ const Departments = () => {
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (department: DepartmentFormValues) => {
-      // Ensure deptcode is required for the update operation
-      const departmentToUpdate = {
-        deptcode: department.deptcode, // Required
+      await updateAuditTrail('department', department.deptcode, 'deptcode', {
         deptname: department.deptname,
-        status: 'edited',
-        stamp: new Date().toISOString()
-      };
+        status: 'edited'
+      });
       
       const { data, error } = await supabase
         .from("department")
-        .update(departmentToUpdate)
+        .select()
         .eq("deptcode", department.deptcode)
-        .select();
+        .single();
       
       if (error) throw new Error(error.message);
-      return data[0];
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -132,15 +140,18 @@ const Departments = () => {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (deptcode: string) => {
-      const { error } = await supabase
+      await updateAuditTrail('department', deptcode, 'deptcode', {
+        status: 'deleted'
+      });
+      
+      const { data, error } = await supabase
         .from("department")
-        .update({
-          status: 'deleted',
-          stamp: new Date().toISOString()
-        })
-        .eq("deptcode", deptcode);
+        .select()
+        .eq("deptcode", deptcode)
+        .single();
       
       if (error) throw new Error(error.message);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -155,15 +166,18 @@ const Departments = () => {
   // Restore department mutation
   const restoreDepartmentMutation = useMutation({
     mutationFn: async (deptcode: string) => {
-      const { error } = await supabase
+      await updateAuditTrail('department', deptcode, 'deptcode', {
+        status: 'restored'
+      });
+      
+      const { data, error } = await supabase
         .from("department")
-        .update({
-          status: 'restored',
-          stamp: new Date().toISOString()
-        })
-        .eq("deptcode", deptcode);
+        .select()
+        .eq("deptcode", deptcode)
+        .single();
       
       if (error) throw new Error(error.message);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -192,6 +206,11 @@ const Departments = () => {
     } catch (e) {
       return dateString;
     }
+  };
+
+  const getUserEmail = (userId: string | null) => {
+    if (!userId || !userEmails) return "N/A";
+    return userEmails[userId] || userId.substring(0, 8);
   };
 
   const filteredDepartments = departments?.filter((department) => {
@@ -337,6 +356,7 @@ const Departments = () => {
                         <>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
+                          <TableHead>Updated By</TableHead>
                         </>
                       )}
                       <TableHead className="text-right">Actions</TableHead>
@@ -364,7 +384,11 @@ const Departments = () => {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {department.stamp ? formatDateTime(department.stamp) : 'N/A'}
+                                {department.updated_at ? formatDateTime(department.updated_at) : 
+                                 department.stamp ? formatDateTime(department.stamp) : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                {department.updated_by ? getUserEmail(department.updated_by) : 'N/A'}
                               </TableCell>
                             </>
                           )}
@@ -404,7 +428,7 @@ const Departments = () => {
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={isAdmin ? 5 : 3}
+                          colSpan={isAdmin ? 6 : 3}
                           className="text-center py-4 text-muted-foreground"
                         >
                           No departments found

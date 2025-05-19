@@ -1,20 +1,13 @@
 
-import { format, parseISO } from "date-fns";
-import { Edit, History, Trash2, RefreshCcw } from "lucide-react";
-import { Employee } from "@/types/supabase";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { usePermission, useAuth } from "@/context/auth-context";
+import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
+import { Employee } from "@/types/supabase";
+import { useUserManagement } from "@/hooks/useUserManagement";
+import { useAuth } from "@/context/auth-context";
 
 interface EmployeeTableProps {
-  employees: Employee[] | undefined;
+  employees: Employee[] | null;
   isLoading: boolean;
   onEditClick: (employee: Employee) => void;
   onDeleteClick: (employee: Employee) => void;
@@ -22,33 +15,40 @@ interface EmployeeTableProps {
   onRestoreClick?: (employee: Employee) => void;
 }
 
-export const EmployeeTable = ({
+export function EmployeeTable({
   employees,
   isLoading,
   onEditClick,
   onDeleteClick,
   onJobHistoryClick,
-  onRestoreClick
-}: EmployeeTableProps) => {
+  onRestoreClick,
+}: EmployeeTableProps) {
   const { isAdmin } = useAuth();
-  const { canEdit, canDelete } = usePermission('employee');
+  const { userEmails } = useUserManagement();
+
+  const formatDate = (date: string | null) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString();
+  };
   
-  const formatDate = (dateString: string | null) => {
+  const formatDateTime = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
-      return format(parseISO(dateString), "MMM d, yyyy");
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     } catch (e) {
       return dateString;
     }
   };
-
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(parseISO(dateString), "yyyy-MMM-dd HH:mm");
-    } catch (e) {
-      return dateString;
-    }
+  
+  const getUserEmail = (userId: string | null) => {
+    if (!userId || !userEmails) return "N/A";
+    return userEmails[userId] || userId.substring(0, 8);
   };
 
   if (isLoading) {
@@ -68,16 +68,16 @@ export const EmployeeTable = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Employee No.</TableHead>
+            <TableHead>Emp No</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Gender</TableHead>
             <TableHead>Birth Date</TableHead>
             <TableHead>Hire Date</TableHead>
-            <TableHead>Separation Date</TableHead>
             {isAdmin && (
               <>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Updated</TableHead>
+                <TableHead>Updated By</TableHead>
               </>
             )}
             <TableHead className="text-right">Actions</TableHead>
@@ -85,42 +85,40 @@ export const EmployeeTable = ({
         </TableHeader>
         <TableBody>
           {employees.map((employee) => (
-            <TableRow key={employee.empno} className={employee.sepdate ? "bg-muted/30" : ""}>
+            <TableRow 
+              key={employee.empno}
+              className={employee.status === 'deleted' ? "bg-muted/30" : ""}
+            >
               <TableCell className="font-medium">{employee.empno}</TableCell>
-              <TableCell>
-                {employee.lastname}, {employee.firstname}
-              </TableCell>
+              <TableCell>{`${employee.lastname || ""}, ${
+                employee.firstname || ""
+              }`}</TableCell>
               <TableCell>{employee.gender || "N/A"}</TableCell>
               <TableCell>{formatDate(employee.birthdate)}</TableCell>
               <TableCell>{formatDate(employee.hiredate)}</TableCell>
-              <TableCell>
-                {employee.sepdate ? (
-                  <span className="text-muted-foreground">
-                    {formatDate(employee.sepdate)}
-                  </span>
-                ) : (
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    Active
-                  </span>
-                )}
-              </TableCell>
               {isAdmin && (
                 <>
                   <TableCell>
-                    <span className={`capitalize ${
-                      employee.status === 'deleted' 
-                        ? 'text-red-500' 
-                        : employee.status === 'edited' 
-                        ? 'text-amber-500'
-                        : employee.status === 'restored'
-                        ? 'text-blue-500'
-                        : 'text-green-500'
-                    }`}>
-                      {employee.status || 'added'}
+                    <span
+                      className={`capitalize ${
+                        employee.status === 'deleted'
+                          ? 'text-red-500'
+                          : employee.status === 'edited'
+                          ? 'text-amber-500'
+                          : employee.status === 'restored'
+                          ? 'text-blue-500'
+                          : 'text-green-500'
+                      }`}
+                    >
+                      {employee.status || 'active'}
                     </span>
                   </TableCell>
                   <TableCell>
-                    {employee.stamp ? formatDateTime(employee.stamp) : 'N/A'}
+                    {employee.updated_at ? formatDateTime(employee.updated_at) : 
+                     employee.stamp ? formatDateTime(employee.stamp) : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {employee.updated_by ? getUserEmail(employee.updated_by) : 'N/A'}
                   </TableCell>
                 </>
               )}
@@ -130,7 +128,6 @@ export const EmployeeTable = ({
                     variant="outline"
                     size="sm"
                     onClick={() => onEditClick(employee)}
-                    disabled={!canEdit}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -154,9 +151,8 @@ export const EmployeeTable = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="text-red-500 hover:text-red-700"
                     onClick={() => onDeleteClick(employee)}
-                    disabled={!canDelete}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -168,4 +164,4 @@ export const EmployeeTable = ({
       </Table>
     </div>
   );
-};
+}

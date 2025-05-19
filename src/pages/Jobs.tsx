@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,8 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, usePermission } from "@/context/auth-context";
+import { updateAuditTrail } from "@/utils/auditTrail";
+import { useUserManagement } from "@/hooks/useUserManagement";
 
 // Form schema for job validation
 const jobSchema = z.object({
@@ -50,6 +53,7 @@ const Jobs = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const { canAdd, canEdit, canDelete } = usePermission('job');
+  const { userEmails } = useUserManagement();
   
   const { data: jobs, isLoading, error, refetch } = useQuery({
     queryKey: ["jobs", showDeleted],
@@ -73,12 +77,19 @@ const Jobs = () => {
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (newJob: JobFormValues) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
+      
       // Explicitly ensuring jobcode is required by creating a new object
       const jobToInsert = {
         jobcode: newJob.jobcode, // This is required
         jobdesc: newJob.jobdesc,  // This is optional
         status: 'added',
-        stamp: new Date().toISOString()
+        stamp: new Date().toISOString(),
+        updated_by: userId,
+        updated_at: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -102,22 +113,19 @@ const Jobs = () => {
   // Update job mutation
   const updateJobMutation = useMutation({
     mutationFn: async (job: JobFormValues) => {
-      // Ensure jobcode is required for the update operation
-      const jobToUpdate = {
-        jobcode: job.jobcode, // Required
+      await updateAuditTrail('job', job.jobcode, 'jobcode', {
         jobdesc: job.jobdesc,
-        status: 'edited',
-        stamp: new Date().toISOString()
-      };
+        status: 'edited'
+      });
       
       const { data, error } = await supabase
         .from("job")
-        .update(jobToUpdate)
+        .select()
         .eq("jobcode", job.jobcode)
-        .select();
+        .single();
       
       if (error) throw new Error(error.message);
-      return data[0];
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
@@ -132,15 +140,18 @@ const Jobs = () => {
   // Delete job mutation
   const deleteJobMutation = useMutation({
     mutationFn: async (jobcode: string) => {
-      const { error } = await supabase
+      await updateAuditTrail('job', jobcode, 'jobcode', {
+        status: 'deleted'
+      });
+      
+      const { data, error } = await supabase
         .from("job")
-        .update({
-          status: 'deleted',
-          stamp: new Date().toISOString()
-        })
-        .eq("jobcode", jobcode);
+        .select()
+        .eq("jobcode", jobcode)
+        .single();
       
       if (error) throw new Error(error.message);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
@@ -155,15 +166,18 @@ const Jobs = () => {
   // Restore job mutation
   const restoreJobMutation = useMutation({
     mutationFn: async (jobcode: string) => {
-      const { error } = await supabase
+      await updateAuditTrail('job', jobcode, 'jobcode', {
+        status: 'restored'
+      });
+      
+      const { data, error } = await supabase
         .from("job")
-        .update({
-          status: 'restored',
-          stamp: new Date().toISOString()
-        })
-        .eq("jobcode", jobcode);
+        .select()
+        .eq("jobcode", jobcode)
+        .single();
       
       if (error) throw new Error(error.message);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
@@ -234,6 +248,11 @@ const Jobs = () => {
     } catch (e) {
       return dateString;
     }
+  };
+
+  const getUserEmail = (userId: string | null) => {
+    if (!userId || !userEmails) return "N/A";
+    return userEmails[userId] || userId.substring(0, 8);
   };
 
   return (
@@ -337,6 +356,7 @@ const Jobs = () => {
                         <>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
+                          <TableHead>Updated By</TableHead>
                         </>
                       )}
                       <TableHead className="text-right">Actions</TableHead>
@@ -364,7 +384,11 @@ const Jobs = () => {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {job.stamp ? formatDateTime(job.stamp) : 'N/A'}
+                                {job.updated_at ? formatDateTime(job.updated_at) : 
+                                 job.stamp ? formatDateTime(job.stamp) : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                {job.updated_by ? getUserEmail(job.updated_by) : 'N/A'}
                               </TableCell>
                             </>
                           )}
@@ -404,7 +428,7 @@ const Jobs = () => {
                     ) : (
                       <TableRow>
                         <TableCell
-                          colSpan={isAdmin ? 5 : 3}
+                          colSpan={isAdmin ? 6 : 3}
                           className="text-center py-4 text-muted-foreground"
                         >
                           No jobs found
