@@ -9,6 +9,8 @@ export interface Employee {
   sepDate?: string | null;
   status?: string | null;
   stamp?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
 }
 
 export interface JobHistory {
@@ -26,6 +28,8 @@ export interface Department {
   deptName: string;
   status?: string | null;
   stamp?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
 }
 
 export interface Job {
@@ -33,6 +37,8 @@ export interface Job {
   jobDesc: string;
   status?: string | null;
   stamp?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
 }
 
 export interface User {

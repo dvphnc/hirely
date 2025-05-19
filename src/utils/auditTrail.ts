@@ -12,7 +12,7 @@ export const updateAuditTrail = async (
   tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, unknown>
+  userData?: Record<string, any>
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
@@ -22,7 +22,7 @@ export const updateAuditTrail = async (
   const timestamp = new Date().toISOString();
   
   // Combine audit data with any additional user data
-  const updateData: Record<string, unknown> = {
+  const updateData: Record<string, any> = {
     updated_by: userId,
     updated_at: timestamp,
     ...(userData || {})
