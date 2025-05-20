@@ -10,6 +10,15 @@ export const formatDate = (dateString: string | null) => {
   }
 };
 
+export const formatDateTime = (dateString: string | null) => {
+  if (!dateString) return "N/A";
+  try {
+    return format(parseISO(dateString), "dd-MMM-yyyy HH:mm:ss");
+  } catch (e) {
+    return dateString;
+  }
+};
+
 export const formatSalary = (salary: number | null) => {
   if (salary === null) return "N/A";
   return new Intl.NumberFormat("en-US", {
