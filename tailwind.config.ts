@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -51,7 +50,7 @@ export default {
 				},
 				card: {
 					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))'
+					foreground: 'hsl(var(--card-foreground)')
 				},
 				instagram: {
 					purple: '#8a3ab9',
@@ -88,6 +87,8 @@ export default {
 			},
 			backgroundImage: {
 				'instagram-gradient': 'linear-gradient(45deg, #8a3ab9, #e95950, #fccc63)',
+				// ITO LANG ANG IDINAGDAG!
+				'instagram-gradient-disabled': 'linear-gradient(45deg, #8a3ab94d, #e959504d, #fccc634d)', 
 			}
 		}
 	},
