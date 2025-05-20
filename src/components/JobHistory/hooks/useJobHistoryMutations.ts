@@ -60,9 +60,12 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to edit job history records");
       }
       
+      // Create a composite ID for the job history record
+      const compositeId = `${jobHistory.empno}-${jobHistory.jobcode}-${jobHistory.effdate}`;
+      
       await updateAuditTrail(
         "jobhistory", 
-        `${jobHistory.empno}-${jobHistory.jobcode}-${jobHistory.effdate}`, 
+        compositeId, 
         "combined_id",
         {
           empno: jobHistory.empno,
@@ -102,6 +105,14 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to delete job history records");
       }
       
+      // Store audit information before deleting
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+      
       // Create composite primary key for deletion
       const { error } = await supabase
         .from("jobhistory")
@@ -114,7 +125,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         console.error("Delete error:", error);
         throw new Error(`Error deleting job history: ${error.message}`);
       }
-      return { success: true };
+      return { success: true, deletedBy: userId };
     },
     onMutate: async (jobHistoryToDelete) => {
       // Cancel any outgoing refetches

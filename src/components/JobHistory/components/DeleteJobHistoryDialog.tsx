@@ -1,6 +1,5 @@
 
 import { Employee } from "@/types/supabase";
-import { format, parseISO } from "date-fns";
 import { Loader2, Clock, User } from "lucide-react";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import {
