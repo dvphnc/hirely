@@ -58,11 +58,28 @@ export const useUserManagement = () => {
   // Delete a user completely (only available to admins)
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
+      // Get the current JWT token from the session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        throw new Error("No valid session found");
+      }
+      
+      console.log("Calling delete-user function for userId:", userId);
+      
       const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { userId },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error invoking delete-user function:", error);
+        throw error;
+      }
+      
       return data;
     },
     onSuccess: () => {

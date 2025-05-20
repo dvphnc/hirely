@@ -12,7 +12,7 @@ export const updateAuditTrail = async (
   tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
   id: string | number, 
   primaryKeyField: string,
-  userData?: any // Using 'any' type to avoid TypeScript instantiation depth error
+  userData?: any
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
