@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Clock, User } from "lucide-react";
-import { format, parseISO } from "date-fns";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
-import { formatDate, formatDateTime } from "../utils/formatUtils";
+import { formatDate, formatDateTime, formatSalary } from "../utils/formatUtils";
 
 interface JobHistoryTableProps {
   jobHistory: JobHistoryWithDetails[] | undefined;
@@ -33,15 +32,6 @@ const JobHistoryTable = ({
   canEdit = true,
   canDelete = true
 }: JobHistoryTableProps) => {
-  const formatSalary = (salary: number | null) => {
-    if (salary === null) return "N/A";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(salary);
-  };
-
   // Define shouldDisableActions using the new props
   const shouldDisableActions = false; // We'll keep this for backward compatibility
 
