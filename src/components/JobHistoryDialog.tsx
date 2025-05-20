@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "./JobHistory/types/JobHistoryTypes";
+import { usePermission } from "@/context/auth-context"; // Import usePermission
 
 interface JobHistoryDialogProps {
   employee: Employee | null;
@@ -29,6 +29,9 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const [currentJobHistory, setCurrentJobHistory] = useState<JobHistoryWithDetails | null>(null);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
+  // Get permissions for 'job_history' table
+  const { canAdd, canEdit, canDelete } = usePermission('job_history'); 
   
   const { jobHistory, isLoading, jobs, departments } = useJobHistoryData(employee);
   const { createJobHistoryMutation, updateJobHistoryMutation, deleteJobHistoryMutation } = useJobHistoryMutations(employee?.empno);
@@ -51,7 +54,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         {
           event: '*',
           schema: 'public',
-          table: 'jobhistory',
+          table: 'jobhistory', // Ensure this matches your actual table name
           filter: `empno=eq.${employee.empno}`
         },
         (payload) => {
@@ -86,16 +89,34 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   }, [employee?.empno, queryClient, open]);
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
+    // Add permission check here:
+    if (!canEdit) {
+      // Optionally show a toast notification or alert
+      console.warn("User does not have permission to edit job history.");
+      return; 
+    }
     setCurrentJobHistory(jobHistory);
     setIsEditOpen(true);
   };
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
+    // Add permission check here:
+    if (!canDelete) {
+      // Optionally show a toast notification or alert
+      console.warn("User does not have permission to delete job history.");
+      return;
+    }
     setCurrentJobHistory(jobHistory);
     setIsDeleteOpen(true);
   };
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
+    // This is called AFTER the add button is clicked, but the button itself is disabled
+    // Still good to have this check for robustness, though client-side UI prevents it
+    if (!canAdd) {
+      console.warn("User does not have permission to add job history.");
+      return;
+    }
     createJobHistoryMutation.mutate(data, {
       onSuccess: () => {
         setIsAddOpen(false);
@@ -104,6 +125,10 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
+    if (!canEdit) {
+      console.warn("User does not have permission to update job history via form submission.");
+      return;
+    }
     updateJobHistoryMutation.mutate(data, {
       onSuccess: () => {
         setIsEditOpen(false);
@@ -113,6 +138,10 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleDeleteJobHistory = () => {
+    if (!canDelete) {
+      console.warn("User does not have permission to delete job history via confirmation.");
+      return;
+    }
     if (currentJobHistory) {
       deleteJobHistoryMutation.mutate(currentJobHistory, {
         onSuccess: () => {
@@ -148,13 +177,16 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           <JobHistoryTable 
             jobHistory={jobHistory} 
             isLoading={isLoading}
-            onEditClick={handleEditClick}
-            onDeleteClick={handleDeleteClick}
+            onEditClick={handleEditClick} // handleEditClick now has the permission check
+            onDeleteClick={handleDeleteClick} // handleDeleteClick now has the permission check
             removingKey={removingKey}
+            // Pass permissions to JobHistoryTable if it also renders the buttons directly
+            canEdit={canEdit} 
+            canDelete={canDelete}
           />
           
           <div className="flex justify-end space-x-2">
-            <Button onClick={() => setIsAddOpen(true)}>
+            <Button onClick={() => setIsAddOpen(true)} disabled={!canAdd}> {/* Disable 'Add' button */}
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>
           </div>
