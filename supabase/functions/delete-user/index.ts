@@ -81,13 +81,33 @@ serve(async (req) => {
       );
     }
 
-    // Delete the user from auth.users table using the admin client
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    try {
+      // Delete the user's profile record first
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
 
-    if (deleteError) {
-      console.error("Error deleting user:", deleteError);
+      // Delete user permissions
+      await supabase
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', userId);
+      
+      // Finally delete the user from auth.users table
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (deleteError) {
+        console.error("Error deleting user:", deleteError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to delete user', details: deleteError }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (err) {
+      console.error("Error in deletion process:", err);
       return new Response(
-        JSON.stringify({ error: 'Failed to delete user', details: deleteError }),
+        JSON.stringify({ error: 'Error in deletion process', details: err.message }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }

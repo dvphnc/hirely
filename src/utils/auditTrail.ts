@@ -12,7 +12,7 @@ export const updateAuditTrail = async (
   tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
   id: string | number, 
   primaryKeyField: string,
-  userData?: any
+  userData?: any // Changed from Record<string, any> to any to fix type instantiation error
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;

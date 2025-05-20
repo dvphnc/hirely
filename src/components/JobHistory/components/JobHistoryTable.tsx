@@ -46,6 +46,9 @@ const JobHistoryTable = ({
     }).format(salary);
   };
 
+  // Define shouldDisableActions variable to fix the reference error
+  const shouldDisableActions = false; // Default to false if there's no specific logic for disabling actions
+
   return (
     <div className="rounded-md border">
       <Table>
