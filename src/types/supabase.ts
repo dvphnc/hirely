@@ -9,8 +9,8 @@ export type Employee = {
   sepdate: string | null;
   status: string | null;
   stamp: string | null;
-  updated_at?: string | null;
-  updated_by?: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
 };
 
 export type JobHistory = {
@@ -28,8 +28,8 @@ export type Department = {
   deptname: string | null;
   status: string | null;
   stamp: string | null;
-  updated_at?: string | null;
-  updated_by?: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
 };
 
 export type Job = {
@@ -37,6 +37,6 @@ export type Job = {
   jobdesc: string | null;
   status: string | null;
   stamp: string | null;
-  updated_at?: string | null;
-  updated_by?: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
 };

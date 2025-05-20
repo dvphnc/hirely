@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -109,7 +108,7 @@ export const useEmployeeMutations = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast.success('Employee deleted successfully');
+      toast.success("Employee deleted successfully");
     },
     onError: (error: any) => {
       toast.error(`Error deleting employee: ${error.message}`);

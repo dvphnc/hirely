@@ -36,18 +36,24 @@ export type Database = {
           deptname: string | null
           stamp: string | null
           status: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           deptcode: string
           deptname?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           deptcode?: string
           deptname?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -62,6 +68,8 @@ export type Database = {
           sepdate: string | null
           stamp: string | null
           status: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           birthdate?: string | null
@@ -73,6 +81,8 @@ export type Database = {
           sepdate?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           birthdate?: string | null
@@ -84,6 +94,8 @@ export type Database = {
           sepdate?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -93,18 +105,24 @@ export type Database = {
           jobdesc: string | null
           stamp: string | null
           status: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           jobcode: string
           jobdesc?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           jobcode?: string
           jobdesc?: string | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
