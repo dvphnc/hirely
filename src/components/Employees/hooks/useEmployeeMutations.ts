@@ -22,6 +22,17 @@ export const useEmployeeMutations = () => {
         throw new Error("User not authenticated");
       }
       
+      // Check if employee with this empno already exists
+      const { data: existingEmployee } = await supabase
+        .from('employee')
+        .select('empno')
+        .eq('empno', newEmployee.empno)
+        .single();
+        
+      if (existingEmployee) {
+        throw new Error(`Employee with ID ${newEmployee.empno} already exists`);
+      }
+      
       const { data, error } = await supabase
         .from('employee')
         .insert([

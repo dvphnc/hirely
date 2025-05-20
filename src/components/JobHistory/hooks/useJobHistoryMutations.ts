@@ -102,6 +102,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to delete job history records");
       }
       
+      // Create composite primary key for deletion
       const { error } = await supabase
         .from("jobhistory")
         .delete()
@@ -109,7 +110,10 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         .eq("jobcode", jobHistory.jobcode)
         .eq("effdate", jobHistory.effdate);
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Delete error:", error);
+        throw new Error(`Error deleting job history: ${error.message}`);
+      }
       return { success: true };
     },
     onMutate: async (jobHistoryToDelete) => {
