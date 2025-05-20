@@ -84,6 +84,7 @@ const JobHistoryTable = ({
                         variant="outline"
                         size="sm"
                         onClick={() => onEditClick(history)}
+                        disabled={shouldDisableActions}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -92,6 +93,7 @@ const JobHistoryTable = ({
                         size="sm"
                         className="text-destructive hover:text-destructive"
                         onClick={() => onDeleteClick(history)}
+                        disabled={shouldDisableActions}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
