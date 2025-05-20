@@ -19,6 +19,8 @@ interface JobHistoryTableProps {
   onEditClick: (jobHistory: JobHistoryWithDetails) => void;
   onDeleteClick: (jobHistory: JobHistoryWithDetails) => void;
   removingKey: string | null;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 const JobHistoryTable = ({ 
@@ -26,7 +28,9 @@ const JobHistoryTable = ({
   isLoading,
   onEditClick,
   onDeleteClick,
-  removingKey
+  removingKey,
+  canEdit = true,
+  canDelete = true
 }: JobHistoryTableProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -46,8 +50,8 @@ const JobHistoryTable = ({
     }).format(salary);
   };
 
-  // Define shouldDisableActions variable to fix the reference error
-  const shouldDisableActions = false; // Default to false if there's no specific logic for disabling actions
+  // Define shouldDisableActions using the new props
+  const shouldDisableActions = false; // We'll keep this for backward compatibility
 
   return (
     <div className="rounded-md border">
@@ -83,23 +87,27 @@ const JobHistoryTable = ({
                   <TableCell>{formatSalary(history.salary)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEditClick(history)}
-                        disabled={shouldDisableActions}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onDeleteClick(history)}
-                        disabled={shouldDisableActions}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEditClick(history)}
+                          disabled={shouldDisableActions}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => onDeleteClick(history)}
+                          disabled={shouldDisableActions}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
