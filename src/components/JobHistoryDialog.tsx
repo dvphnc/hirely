@@ -14,9 +14,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "./JobHistory/types/JobHistoryTypes";
-// --- BAGONG CODE ---
-import { usePermission } from "@/context/auth-context"; // <- Idinagdag ang import na ito
-// --- END BAGONG CODE ---
+import { usePermission } from "@/context/auth-context";
 
 interface JobHistoryDialogProps {
   employee: Employee | null;
@@ -32,11 +30,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   
-  // --- BAGONG CODE ---
-  // Kinukuha ang permissions para sa 'jobhistory' table
-  // Mahalaga: Siguraduhin na 'jobhistory' ang eksaktong 'table_name' sa iyong 'user_permissions' table sa Supabase.
-  const { canAdd, canEdit, canDelete } = usePermission('jobhistory'); 
-  // --- END BAGONG CODE ---
+  const { canAdd, canEdit, canDelete } = usePermission('jobhistory');
   
   const { jobHistory, isLoading, jobs, departments } = useJobHistoryData(employee);
   const { createJobHistoryMutation, updateJobHistoryMutation, deleteJobHistoryMutation } = useJobHistoryMutations(employee?.empno);
@@ -59,7 +53,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
         {
           event: '*',
           schema: 'public',
-          table: 'jobhistory', // Tiyaking tama ang pangalan ng table na ito
+          table: 'jobhistory',
           filter: `empno=eq.${employee.empno}`
         },
         (payload) => {
@@ -92,39 +86,28 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   }, [employee?.empno, queryClient, open]);
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
-    // --- BAGONG CODE ---
-    // Redundant check: Kahit disabled sa UI, magandang may check pa rin dito.
     if (!canEdit) { 
       console.warn("User does not have permission to edit job history.");
-      // Maaari kang magdagdag ng toast notification dito, e.g., toast.error("You don't have permission to edit job history.");
       return; 
     }
-    // --- END BAGONG CODE ---
     setCurrentJobHistory(jobHistory);
     setIsEditOpen(true);
   };
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
-    // --- BAGONG CODE ---
-    // Redundant check: Kahit disabled sa UI, magandang may check pa rin dito.
     if (!canDelete) { 
       console.warn("User does not have permission to delete job history.");
-      // Maaari kang magdagdag ng toast notification dito
       return;
     }
-    // --- END BAGONG CODE ---
     setCurrentJobHistory(jobHistory);
     setIsDeleteOpen(true);
   };
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
-    // --- BAGONG CODE ---
-    // Redundant check: Mahalaga ito kung sakaling direktang tawagin ang function
     if (!canAdd) {
       console.warn("User does not have permission to add job history.");
       return;
     }
-    // --- END BAGONG CODE ---
     createJobHistoryMutation.mutate(data, {
       onSuccess: () => {
         setIsAddOpen(false);
@@ -133,13 +116,10 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
-    // --- BAGONG CODE ---
-    // Redundant check: Mahalaga ito
     if (!canEdit) {
       console.warn("User does not have permission to update job history via form submission.");
       return;
     }
-    // --- END BAGONG CODE ---
     updateJobHistoryMutation.mutate(data, {
       onSuccess: () => {
         setIsEditOpen(false);
@@ -149,13 +129,10 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleDeleteJobHistory = () => {
-    // --- BAGONG CODE ---
-    // Redundant check: Mahalaga ito
     if (!canDelete) {
       console.warn("User does not have permission to delete job history via confirmation.");
       return;
     }
-    // --- END BAGONG CODE ---
     if (currentJobHistory) {
       deleteJobHistoryMutation.mutate(currentJobHistory, {
         onSuccess: () => {
@@ -194,20 +171,14 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             onEditClick={handleEditClick} 
             onDeleteClick={handleDeleteClick}
             removingKey={removingKey}
-            // --- BAGONG CODE ---
-            // Ipasa ang permissions sa JobHistoryTable para doon i-disable ang buttons per row
             canEdit={canEdit} 
             canDelete={canDelete}
-            // --- END BAGONG CODE ---
           />
           
           <div className="flex justify-end space-x-2">
-            {/* --- BAGONG CODE --- */}
-            {/* I-disable ang 'Add Job History' button base sa 'canAdd' permission */}
             <Button onClick={() => setIsAddOpen(true)} disabled={!canAdd}> 
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>
-            {/* --- END BAGONG CODE --- */}
           </div>
         </DialogContent>
       </Dialog>

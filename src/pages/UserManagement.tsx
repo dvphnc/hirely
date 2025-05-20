@@ -55,20 +55,29 @@ const UserManagement = () => {
     }
   }, [isAdmin, navigate]);
 
-  // Fix for the "Manage Users" tab disappearing issue
+  // Enhancement: Fix for the "Manage Users" tab disappearing issue
+  // Add more robust session refresh mechanism on component mount
   useEffect(() => {
-    // Check admin status when the component mounts or window gets focus
-    const handleFocus = () => {
-      if (user) {
-        // Refresh user data to ensure admin status is correctly recognized
-        supabase.auth.refreshSession().then(() => {
-          // Force a re-render by invalidating relevant queries
-          queryClient.invalidateQueries({ queryKey: ['users'] });
-        });
+    const checkAdminStatus = async () => {
+      // Force session refresh to ensure admin status is correctly recognized
+      const { data } = await supabase.auth.refreshSession();
+      
+      if (data.session) {
+        // Force a re-render by invalidating relevant queries
+        queryClient.invalidateQueries({ queryKey: ['users'] });
       }
     };
-
-    // Listen for window focus events
+    
+    // Check admin status when component mounts
+    checkAdminStatus();
+    
+    // Also set up a window focus event listener to check status when tab regains focus
+    const handleFocus = () => {
+      if (user) {
+        checkAdminStatus();
+      }
+    };
+    
     window.addEventListener('focus', handleFocus);
     
     // Clean up event listener

@@ -17,12 +17,22 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to add job history records");
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+
       const jobHistoryToInsert = {
         empno: newJobHistory.empno,
         jobcode: newJobHistory.jobcode,
         deptcode: newJobHistory.deptcode,
         effdate: newJobHistory.effdate,
         salary: newJobHistory.salary,
+        status: 'added',
+        updated_by: userId,
+        updated_at: new Date().toISOString()
       };
       
       const { data, error } = await supabase
@@ -31,15 +41,6 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         .select();
       
       if (error) throw new Error(error.message);
-      
-      // Add audit trail
-      if (data && data[0]) {
-        await updateAuditTrail(
-          "jobhistory", 
-          `${data[0].empno}-${data[0].jobcode}-${data[0].effdate}`, 
-          "combined_id"
-        );
-      }
       
       return data[0];
     },
@@ -59,34 +60,31 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to edit job history records");
       }
       
-      const jobHistoryToUpdate = {
-        empno: jobHistory.empno,
-        jobcode: jobHistory.jobcode,
-        deptcode: jobHistory.deptcode,
-        effdate: jobHistory.effdate,
-        salary: jobHistory.salary,
-      };
+      await updateAuditTrail(
+        "jobhistory", 
+        `${jobHistory.empno}-${jobHistory.jobcode}-${jobHistory.effdate}`, 
+        "combined_id",
+        {
+          empno: jobHistory.empno,
+          jobcode: jobHistory.jobcode,
+          deptcode: jobHistory.deptcode,
+          effdate: jobHistory.effdate,
+          salary: jobHistory.salary,
+          status: 'edited'
+        }
+      );
       
       const { data, error } = await supabase
         .from("jobhistory")
-        .update(jobHistoryToUpdate)
+        .select()
         .eq("empno", jobHistory.empno)
         .eq("jobcode", jobHistory.jobcode)
         .eq("effdate", jobHistory.effdate)
-        .select();
+        .single();
       
       if (error) throw new Error(error.message);
       
-      // Add audit trail
-      if (data && data[0]) {
-        await updateAuditTrail(
-          "jobhistory", 
-          `${data[0].empno}-${data[0].jobcode}-${data[0].effdate}`, 
-          "combined_id"
-        );
-      }
-      
-      return data[0];
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });

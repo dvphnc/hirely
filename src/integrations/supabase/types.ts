@@ -135,6 +135,8 @@ export type Database = {
           salary: number | null
           stamp: string | null
           status: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           deptcode?: string | null
@@ -144,6 +146,8 @@ export type Database = {
           salary?: number | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           deptcode?: string | null
@@ -153,6 +157,8 @@ export type Database = {
           salary?: number | null
           stamp?: string | null
           status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {

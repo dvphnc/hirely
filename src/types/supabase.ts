@@ -21,6 +21,8 @@ export type JobHistory = {
   deptcode: string | null;
   status: string | null;
   stamp: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
 };
 
 export type Department = {

@@ -41,6 +41,15 @@ const JobHistoryTable = ({
     }
   };
 
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      return format(parseISO(dateString), "dd-MMM-yyyy HH:mm:ss");
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   const formatSalary = (salary: number | null) => {
     if (salary === null) return "N/A";
     return new Intl.NumberFormat("en-US", {
@@ -62,13 +71,15 @@ const JobHistoryTable = ({
             <TableHead>Effectivity Date</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Salary</TableHead>
+            <TableHead>Updated At</TableHead>
+            <TableHead>Updated By</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
+              <TableCell colSpan={7} className="text-center py-4">
                 Loading job history...
               </TableCell>
             </TableRow>
@@ -85,6 +96,8 @@ const JobHistoryTable = ({
                   <TableCell>{formatDate(history.effdate)}</TableCell>
                   <TableCell>{history.department?.deptname || history.deptcode || "N/A"}</TableCell>
                   <TableCell>{formatSalary(history.salary)}</TableCell>
+                  <TableCell>{formatDateTime(history.updated_at)}</TableCell>
+                  <TableCell>{history.updated_by || "N/A"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {canEdit && (
@@ -115,7 +128,7 @@ const JobHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                 No job history found
               </TableCell>
             </TableRow>
