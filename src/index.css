@@ -114,6 +114,14 @@
   .dark form select {
     @apply border-neutral-700 bg-neutral-800 text-neutral-100;
   }
+
+  /* --- FIX PARA SA LAHAT NG DISABLED BUTTONS --- */
+  /* Ito ang magsisiguro na mag-a-apply ang opacity sa lahat ng disabled button */
+  button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+  /* --- END FIX --- */
 }
 
 @layer components {
@@ -121,17 +129,27 @@
     @apply bg-instagram-gradient text-white;
   }
   
-  // --- BAGONG RULE NA IDINAGDAG PARA SA DISABLED STATE ---
   .instagram-gradient:disabled {
     @apply bg-instagram-gradient-disabled text-white/50 cursor-not-allowed; 
-    opacity: 0.5 !important;
   }
-  // --- END NG BAGONG RULE ---
   
   .instagram-gradient-hover:hover {
     @apply bg-instagram-gradient text-white transition-all duration-300;
   }
   
+  /* --- DAGDAG NA RULES PARA SA OUTLINE AT DESTRUCTIVE BUTTONS --- */
+  /* Ito ang mas specific na target para sa Edit at Delete buttons */
+  button[variant="outline"][disabled],
+  button.text-destructive[disabled] {
+    opacity: 0.5 !important; /* Siguraduhin na ito ang mag-apply */
+    cursor: not-allowed !important;
+    /* Optional: i-override ang background/text/border color para mas maging dim */
+    background-color: transparent !important; 
+    color: var(--muted-foreground) !important;
+    border-color: var(--border) !important;
+  }
+  /* --- END NG DAGDAG NA RULES --- */
+
   /* Active employee status highlight with better dark mode support */
   .active-employee {
     @apply text-green-600 dark:text-green-400 font-medium;
