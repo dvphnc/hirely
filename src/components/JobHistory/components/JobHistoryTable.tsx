@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Clock, User } from "lucide-react";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import { formatDate, formatDateTime, formatSalary } from "../utils/formatUtils";
+import { useUserManagement } from "@/hooks/useUserManagement";
+import { useAuth } from "@/context/auth-context";
 
 interface JobHistoryTableProps {
   jobHistory: JobHistoryWithDetails[] | undefined;
@@ -34,6 +36,14 @@ const JobHistoryTable = ({
 }: JobHistoryTableProps) => {
   // Define shouldDisableActions using the new props
   const shouldDisableActions = false; // We'll keep this for backward compatibility
+  const { isAdmin } = useAuth();
+  const { userEmails } = useUserManagement();
+
+  // Get user email from ID
+  const getUserEmail = (userId: string | null) => {
+    if (!userId || !userEmails) return "N/A";
+    return userEmails[userId] || userId.substring(0, 8);
+  };
 
   return (
     <div className="rounded-md border">
@@ -44,25 +54,29 @@ const JobHistoryTable = ({
             <TableHead>Effectivity Date</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Salary</TableHead>
-            <TableHead>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>Updated At</span>
-              </div>
-            </TableHead>
-            <TableHead>
-              <div className="flex items-center gap-1">
-                <User className="h-4 w-4" />
-                <span>Updated By</span>
-              </div>
-            </TableHead>
+            {isAdmin && (
+              <>
+                <TableHead>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>Updated At</span>
+                  </div>
+                </TableHead>
+                <TableHead>
+                  <div className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span>Updated By</span>
+                  </div>
+                </TableHead>
+              </>
+            )}
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-4">
+              <TableCell colSpan={isAdmin ? 7 : 5} className="text-center py-4">
                 Loading job history...
               </TableCell>
             </TableRow>
@@ -79,8 +93,12 @@ const JobHistoryTable = ({
                   <TableCell>{formatDate(history.effdate)}</TableCell>
                   <TableCell>{history.department?.deptname || history.deptcode || "N/A"}</TableCell>
                   <TableCell>{formatSalary(history.salary)}</TableCell>
-                  <TableCell>{formatDateTime(history.updated_at)}</TableCell>
-                  <TableCell>{history.updated_by || "N/A"}</TableCell>
+                  {isAdmin && (
+                    <>
+                      <TableCell>{formatDateTime(history.updated_at)}</TableCell>
+                      <TableCell>{getUserEmail(history.updated_by)}</TableCell>
+                    </>
+                  )}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {canEdit && (
@@ -111,7 +129,7 @@ const JobHistoryTable = ({
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+              <TableCell colSpan={isAdmin ? 7 : 5} className="text-center py-4 text-muted-foreground">
                 No job history found
               </TableCell>
             </TableRow>

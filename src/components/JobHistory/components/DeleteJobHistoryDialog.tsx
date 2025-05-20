@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatDate, formatDateTime } from "../utils/formatUtils";
+import { useUserManagement } from "@/hooks/useUserManagement";
 
 interface DeleteJobHistoryDialogProps {
   isOpen: boolean;
@@ -31,6 +32,14 @@ const DeleteJobHistoryDialog = ({
   onDelete,
   isDeleting
 }: DeleteJobHistoryDialogProps) => {
+  const { userEmails } = useUserManagement();
+
+  // Get user email from ID
+  const getUserEmail = (userId: string | null) => {
+    if (!userId || !userEmails) return "N/A";
+    return userEmails[userId] || userId.substring(0, 8);
+  };
+
   return (
     <AlertDialog 
       open={isOpen} 
@@ -62,7 +71,7 @@ const DeleteJobHistoryDialog = ({
                 </p>
                 <p className="text-sm flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  <span className="font-medium">Updated By:</span> {currentJobHistory.updated_by || "N/A"}
+                  <span className="font-medium">Updated By:</span> {getUserEmail(currentJobHistory.updated_by)}
                 </p>
               </div>
             </>
