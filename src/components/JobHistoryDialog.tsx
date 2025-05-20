@@ -30,8 +30,10 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   
-  // Get permissions for 'job_history' table
-  const { canAdd, canEdit, canDelete } = usePermission('job_history'); 
+  // --- BAGONG CODE: KUNIN ANG PERMISSIONS PARA SA 'jobhistory' ---
+  // Siguraduhin na 'jobhistory' ang exact table_name sa iyong user_permissions table
+  const { canAdd, canEdit, canDelete } = usePermission('jobhistory'); // <--- Pinalitan ang 'job_history' sa 'jobhistory'
+  // --- END BAGONG CODE ---
   
   const { jobHistory, isLoading, jobs, departments } = useJobHistoryData(employee);
   const { createJobHistoryMutation, updateJobHistoryMutation, deleteJobHistoryMutation } = useJobHistoryMutations(employee?.empno);
@@ -63,13 +65,11 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
             const rowKey = `${deleted.empno}-${deleted.jobcode}-${deleted.effdate}`;
             setRemovingKey(rowKey);
 
-            // Use a shorter timeout for deletion animations
             setTimeout(() => {
               setRemovingKey(null);
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
             }, 100);
           } else {
-            // Use a shorter timeout for other updates
             setTimeout(() => {
               queryClient.invalidateQueries({ queryKey: ["jobHistory", employee.empno] });
             }, 100);
@@ -89,9 +89,8 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   }, [employee?.empno, queryClient, open]);
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
-    // Add permission check here:
-    if (!canEdit) {
-      // Optionally show a toast notification or alert
+    // Redundant check for security, UI should handle disabling
+    if (!canEdit) { 
       console.warn("User does not have permission to edit job history.");
       return; 
     }
@@ -100,9 +99,8 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
-    // Add permission check here:
-    if (!canDelete) {
-      // Optionally show a toast notification or alert
+    // Redundant check for security, UI should handle disabling
+    if (!canDelete) { 
       console.warn("User does not have permission to delete job history.");
       return;
     }
@@ -111,8 +109,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
-    // This is called AFTER the add button is clicked, but the button itself is disabled
-    // Still good to have this check for robustness, though client-side UI prevents it
+    // Redundant check for security, UI should handle disabling
     if (!canAdd) {
       console.warn("User does not have permission to add job history.");
       return;
@@ -125,6 +122,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
+    // Redundant check for security
     if (!canEdit) {
       console.warn("User does not have permission to update job history via form submission.");
       return;
@@ -138,6 +136,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   };
 
   const handleDeleteJobHistory = () => {
+    // Redundant check for security
     if (!canDelete) {
       console.warn("User does not have permission to delete job history via confirmation.");
       return;
@@ -177,18 +176,19 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
           <JobHistoryTable 
             jobHistory={jobHistory} 
             isLoading={isLoading}
-            onEditClick={handleEditClick} // handleEditClick now has the permission check
-            onDeleteClick={handleDeleteClick} // handleDeleteClick now has the permission check
+            onEditClick={handleEditClick} 
+            onDeleteClick={handleDeleteClick}
             removingKey={removingKey}
-            // Pass permissions to JobHistoryTable if it also renders the buttons directly
-            canEdit={canEdit} 
-            canDelete={canDelete}
+            canEdit={canEdit} // Pass permission to JobHistoryTable
+            canDelete={canDelete} // Pass permission to JobHistoryTable
           />
           
           <div className="flex justify-end space-x-2">
-            <Button onClick={() => setIsAddOpen(true)} disabled={!canAdd}> {/* Disable 'Add' button */}
+            {/* --- BAGONG CODE: GAMITIN ANG disabled prop sa Button --- */}
+            <Button onClick={() => setIsAddOpen(true)} disabled={!canAdd}> 
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>
+            {/* --- END BAGONG CODE --- */}
           </div>
         </DialogContent>
       </Dialog>
