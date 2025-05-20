@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Employee } from "@/types/supabase";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
@@ -89,12 +88,17 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
       console.warn("User does not have permission to delete job history via confirmation.");
       return;
     }
-    deleteJobHistoryMutation.mutate(createJobHistoryMutation.variables, {
-      onSuccess: () => {
-        setIsDeleteOpen(false);
-        setCurrentJobHistory(null);
-      }
-    });
+    
+    // Fix: Check if currentJobHistory exists in deleteJobHistoryMutation.variables
+    // Otherwise use the actual JobHistory object from the mutation state
+    if (deleteJobHistoryMutation.variables) {
+      deleteJobHistoryMutation.mutate(deleteJobHistoryMutation.variables, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setCurrentJobHistory(null);
+        }
+      });
+    }
   };
 
   return (
