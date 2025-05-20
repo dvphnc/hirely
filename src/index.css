@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -121,6 +120,12 @@
   .instagram-gradient {
     @apply bg-instagram-gradient text-white;
   }
+  
+  // --- BAGONG RULE NA IDINAGDAG PARA SA DISABLED STATE ---
+  .instagram-gradient:disabled {
+    @apply bg-instagram-gradient-disabled text-white/50 cursor-not-allowed; 
+  }
+  // --- END NG BAGONG RULE ---
   
   .instagram-gradient-hover:hover {
     @apply bg-instagram-gradient text-white transition-all duration-300;
