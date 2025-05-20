@@ -1,7 +1,7 @@
 
 import { Employee } from "@/types/supabase";
 import { format, parseISO } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock, User } from "lucide-react";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import {
   AlertDialog,
@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatDate, formatDateTime } from "../utils/formatUtils";
 
 interface DeleteJobHistoryDialogProps {
   isOpen: boolean;
@@ -31,15 +32,6 @@ const DeleteJobHistoryDialog = ({
   onDelete,
   isDeleting
 }: DeleteJobHistoryDialogProps) => {
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(parseISO(dateString), "dd-MMM-yyyy");
-    } catch (e) {
-      return dateString;
-    }
-  };
-
   return (
     <AlertDialog 
       open={isOpen} 
@@ -64,6 +56,16 @@ const DeleteJobHistoryDialog = ({
             <>
               <p className="text-sm"><span className="font-medium">Job:</span> {currentJobHistory.job?.jobdesc || currentJobHistory.jobcode}</p>
               <p className="text-sm"><span className="font-medium">Date:</span> {formatDate(currentJobHistory.effdate)}</p>
+              <div className="mt-2 pt-2 border-t border-muted">
+                <p className="text-sm flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span className="font-medium">Updated At:</span> {formatDateTime(currentJobHistory.updated_at)}
+                </p>
+                <p className="text-sm flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  <span className="font-medium">Updated By:</span> {currentJobHistory.updated_by || "N/A"}
+                </p>
+              </div>
             </>
           )}
         </div>

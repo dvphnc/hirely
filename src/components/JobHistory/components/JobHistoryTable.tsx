@@ -9,9 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Clock, User } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
+import { formatDate, formatDateTime } from "../utils/formatUtils";
 
 interface JobHistoryTableProps {
   jobHistory: JobHistoryWithDetails[] | undefined;
@@ -32,24 +33,6 @@ const JobHistoryTable = ({
   canEdit = true,
   canDelete = true
 }: JobHistoryTableProps) => {
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(parseISO(dateString), "dd-MMM-yyyy");
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(parseISO(dateString), "dd-MMM-yyyy HH:mm:ss");
-    } catch (e) {
-      return dateString;
-    }
-  };
-
   const formatSalary = (salary: number | null) => {
     if (salary === null) return "N/A";
     return new Intl.NumberFormat("en-US", {
@@ -71,8 +54,18 @@ const JobHistoryTable = ({
             <TableHead>Effectivity Date</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Salary</TableHead>
-            <TableHead>Updated At</TableHead>
-            <TableHead>Updated By</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>Updated At</span>
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>Updated By</span>
+              </div>
+            </TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
