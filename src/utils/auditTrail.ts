@@ -1,75 +1,110 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/auth-context";
+import { PostgrestError } from "@supabase/supabase-js";
 
-// Define valid table names as a union type to avoid type recursion issues
-type ValidTableName = 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions' | 
-                      'customer' | 'payment' | 'sales' | 'pricehist' | 'product' | 'salesdetail';
+// Define a ValidTableName type to avoid "Type instantiation is excessively deep"
+type ValidTableName = 
+  | "employee"
+  | "job"
+  | "department"
+  | "jobhistory"
+  | "profiles"
+  | "user_permissions"
+  | "customer"
+  | "payment"
+  | "sales"
+  | "pricehist"
+  | "product"
+  | "salesdetail";
 
 /**
- * Updates a record with audit trail information
- * @param tableName The name of the table to update
- * @param id The ID or primary key value of the record
- * @param primaryKeyField The name of the primary key field
- * @param userData Optional additional data to update along with audit information
+ * Create an audit trail record
+ * @param data The row data that was affected
+ * @param action 'INSERT' | 'UPDATE' | 'DELETE'
+ * @param tableName The name of the table that was affected
+ * @returns Promise<{ error: PostgrestError | null }>
  */
-export const updateAuditTrail = async (
-  tableName: ValidTableName, 
-  id: string | number, 
-  primaryKeyField: string,
-  userData: Record<string, any> = {}
-): Promise<void> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id;
-  
-  if (!userId) return;
-  
-  const timestamp = new Date().toISOString();
-  
-  // Combine audit data with any additional user data
-  const updateData: Record<string, any> = {
-    updated_by: userId,
-    updated_at: timestamp,
-    ...userData
-  };
-  
-  // For composite keys in jobhistory table
-  if (tableName === 'jobhistory' && primaryKeyField === 'combined_id' && typeof id === 'string') {
-    // Parse the composite key format "empno-jobcode-effdate"
-    const parts = id.split('-');
-    if (parts.length === 3) {
-      const empno = parts[0];
-      const jobcode = parts[1];
-      const effdate = parts[2];
-      
-      try {
-        const { error } = await supabase
-          .from(tableName)
-          .update(updateData)
-          .eq('empno', empno)
-          .eq('jobcode', jobcode)
-          .eq('effdate', effdate);
-          
-        if (error) {
-          console.error(`Error updating audit trail for ${tableName}:`, error);
-        }
-      } catch (error) {
-        console.error(`Exception while updating audit trail for ${tableName}:`, error);
-      }
-      return;
-    }
-  }
-  
-  // Standard update for non-composite keys
+export const createAuditTrail = async <T extends Record<string, any>>(
+  data: T,
+  action: 'INSERT' | 'UPDATE' | 'DELETE',
+  tableName: ValidTableName
+): Promise<{ error: PostgrestError | null }> => {
   try {
-    const { error } = await supabase
-      .from(tableName)
-      .update(updateData)
-      .eq(primaryKeyField, id);
-      
-    if (error) {
-      console.error(`Error updating audit trail for ${tableName}:`, error);
+    // Get the current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      console.error('No user ID found for audit trail');
+      return { error: { message: 'No user ID found', details: '', hint: '', code: '403' } as PostgrestError };
     }
+
+    // Create the audit trail record
+    const { error } = await supabase
+      .from('audit_trail')
+      .insert({
+        table_name: tableName,
+        record_id: JSON.stringify(extractRecordId(data, tableName)),
+        action: action,
+        old_data: null, // We don't track old data in this simplified version
+        new_data: action === 'DELETE' ? null : data,
+        created_by: userId
+      });
+
+    if (error) {
+      console.error('Error creating audit trail:', error);
+    }
+
+    return { error };
   } catch (error) {
-    console.error(`Exception while updating audit trail for ${tableName}:`, error);
+    console.error('Unexpected error in createAuditTrail:', error);
+    return { error: { message: 'Unexpected error', details: '', hint: '', code: '500' } as PostgrestError };
   }
 };
+
+// Function to extract the record ID from the data based on table name
+function extractRecordId<T extends Record<string, any>>(data: T, tableName: ValidTableName): string | number | Record<string, any> {
+  switch (tableName) {
+    case 'employee':
+      return { empno: data.empno };
+    case 'job':
+      return { jobcode: data.jobcode };
+    case 'department':
+      return { deptcode: data.deptcode };
+    case 'jobhistory':
+      return { 
+        empno: data.empno,
+        jobcode: data.jobcode,
+        effdate: data.effdate
+      };
+    case 'profiles':
+      return { id: data.id };
+    case 'user_permissions':
+      return { user_id: data.user_id };
+    case 'customer':
+      return { custno: data.custno };
+    case 'payment':
+      return { 
+        custno: data.custno,
+        paydate: data.paydate
+      };
+    case 'sales':
+      return { invno: data.invno };
+    case 'pricehist':
+      return { 
+        prodcode: data.prodcode,
+        effdate: data.effdate
+      };
+    case 'product':
+      return { prodcode: data.prodcode };
+    case 'salesdetail':
+      return { 
+        invno: data.invno,
+        prodcode: data.prodcode
+      };
+    default:
+      // Return the full data for unknown tables - this should not happen with our type definition
+      return data;
+  }
+}
