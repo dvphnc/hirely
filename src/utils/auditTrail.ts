@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
-// Define valid table names explicitly to avoid circular type inference
+// Define valid table names explicitly to avoid the type recursion issue
 type ValidTableNames = 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions';
 
 /**
@@ -14,7 +15,7 @@ export const updateAuditTrail = async (
   tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, any>
+  userData?: Record<string, unknown>
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;

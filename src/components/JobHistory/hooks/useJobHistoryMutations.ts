@@ -27,12 +27,16 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       // First, update the employee record to show activity
       if (newJobHistory.empno) {
         try {
+          // Make sure this updates the employee status
           await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
             status: 'edited'
           });
+          
+          // Force a refresh of the employees query to show the updated status
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
+          
         } catch (error) {
           console.error("Error updating employee audit trail:", error);
-          // Continue with job history creation even if employee update fails
         }
       }
       
