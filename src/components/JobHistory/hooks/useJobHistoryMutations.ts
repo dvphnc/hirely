@@ -35,6 +35,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         updated_at: new Date().toISOString()
       };
       
+      // Also update the associated employee record to show activity
+      if (newJobHistory.empno) {
+        await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
+          status: 'edited'
+        });
+      }
+      
       const { data, error } = await supabase
         .from("jobhistory")
         .insert(jobHistoryToInsert)
@@ -46,6 +53,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] }); // Refresh employee data too
       toast.success("Job history entry added successfully");
     },
     onError: (error) => {
@@ -62,6 +70,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       // Create a composite ID for the job history record
       const compositeId = `${jobHistory.empno}-${jobHistory.jobcode}-${jobHistory.effdate}`;
+      
+      // Also update the associated employee record to show activity
+      if (jobHistory.empno) {
+        await updateAuditTrail('employee', jobHistory.empno, 'empno', {
+          status: 'edited'
+        });
+      }
       
       await updateAuditTrail(
         "jobhistory", 
@@ -91,6 +106,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] }); // Refresh employee data too
       toast.success("Job history updated successfully");
     },
     onError: (error) => {
@@ -111,6 +127,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       if (!userId) {
         throw new Error("User not authenticated");
+      }
+      
+      // Also update the associated employee record to show activity
+      if (jobHistory.empno) {
+        await updateAuditTrail('employee', jobHistory.empno, 'empno', {
+          status: 'edited'
+        });
       }
       
       // Create composite primary key for deletion
@@ -152,6 +175,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       return { previousJobHistory };
     },
     onSuccess: () => {
+      // Invalidate all potentially affected queries
+      queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] }); // Refresh employee data too
       toast.success("Job history deleted successfully");
     },
     onError: (error, _, context) => {

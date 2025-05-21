@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Employee } from "@/types/supabase";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
@@ -89,10 +90,9 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
       return;
     }
     
-    // Fix: Check if currentJobHistory exists in deleteJobHistoryMutation.variables
-    // Otherwise use the actual JobHistory object from the mutation state
-    if (deleteJobHistoryMutation.variables) {
-      deleteJobHistoryMutation.mutate(deleteJobHistoryMutation.variables, {
+    // Make sure we have a current job history item to delete
+    if (currentJobHistory) {
+      deleteJobHistoryMutation.mutate(currentJobHistory, {
         onSuccess: () => {
           setIsDeleteOpen(false);
           setCurrentJobHistory(null);

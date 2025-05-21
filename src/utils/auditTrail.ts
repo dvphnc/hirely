@@ -28,7 +28,27 @@ export const updateAuditTrail = async (
     ...(userData || {})
   };
   
-  // Update the record with audit information
+  // For composite keys in jobhistory table
+  if (tableName === 'jobhistory' && primaryKeyField === 'combined_id' && typeof id === 'string') {
+    // Parse the composite key format "empno-jobcode-effdate"
+    const [empno, jobcode, effdate] = id.split('-');
+    
+    if (empno && jobcode && effdate) {
+      const { error } = await supabase
+        .from(tableName)
+        .update(updateData)
+        .eq('empno', empno)
+        .eq('jobcode', jobcode)
+        .eq('effdate', effdate);
+        
+      if (error) {
+        console.error(`Error updating audit trail for ${tableName}:`, error);
+      }
+      return;
+    }
+  }
+  
+  // Standard update for non-composite keys
   const { error } = await supabase
     .from(tableName)
     .update(updateData)
