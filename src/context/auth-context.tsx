@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -330,11 +329,19 @@ export const useAuth = () => {
 };
 
 export const usePermission = (tableName: string) => {
-  const { permissions, isAdmin } = useAuth();
+  const { permissions, isAdmin, profile } = useAuth();
   
   // Admins have all permissions
   if (isAdmin) {
     return { canAdd: true, canEdit: true, canDelete: true };
+  }
+  
+  // If user role is 'user', deny all permissions for specified tables
+  if (profile?.role === 'user') {
+    const restrictedTables = ['employee', 'jobhistory', 'job', 'department'];
+    if (restrictedTables.includes(tableName)) {
+      return { canAdd: false, canEdit: false, canDelete: false };
+    }
   }
   
   // Find permissions for the specified table

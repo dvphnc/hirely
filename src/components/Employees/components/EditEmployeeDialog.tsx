@@ -38,7 +38,7 @@ export const EditEmployeeDialog = ({
   const { updateEmployeeMutation } = useEmployeeMutations();
   // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
   // Gamitin ang usePermission hook para sa 'employees' table.
-  const { canEdit } = usePermission('employees'); // Kukunin ang 'canEdit' property para sa 'employees' table
+  const { canEdit } = usePermission('employee'); // Kukunin ang 'canEdit' property para sa 'employees' table
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
