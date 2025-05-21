@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Employee } from "@/types/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -23,9 +22,14 @@ const Employees = () => {
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const { isAdmin } = useAuth();
-  const { canAdd, canEdit, canDelete } = usePermission('employee');
+  // --- IBINALIK SA 'employee' DITO, DAHIL ITO ANG NASA SUPABASE MO ---
+  const { canAdd, canEdit, canDelete } = usePermission('employee'); // <--- IBINALIK DITO
 
-  const { 
+  // Para sa debugging: I-check ang values na ito sa browser console
+  console.log("Permissions in Employees.tsx (from usePermission):", { canAdd, canEdit, canDelete });
+  console.log("isAdmin:", isAdmin);
+
+  const {
     employees,
     isLoading,
     error,
@@ -42,7 +46,7 @@ const Employees = () => {
   const { deleteEmployeeMutation, restoreEmployeeMutation } = useEmployeeMutations();
 
   const handleEditClick = (employee: Employee) => {
-    // Only allow editing if user has permission
+    // Only allow editing if user has permission OR is admin
     if (!canEdit && !isAdmin) {
       toast.error("You don't have permission to edit employees.");
       return;
@@ -52,7 +56,7 @@ const Employees = () => {
   };
 
   const handleDeleteClick = (employee: Employee) => {
-    // Only allow deletion if user has permission
+    // Only allow deletion if user has permission OR is admin
     if (!canDelete && !isAdmin) {
       toast.error("You don't have permission to delete employees.");
       return;
@@ -67,37 +71,46 @@ const Employees = () => {
   };
 
   const handleConfirmDelete = () => {
-    // Final check before deletion
+    // Final check before deletion (redundant if handleDeleteClick already checks, but good for safety)
     if (!canDelete && !isAdmin) {
       toast.error("You don't have permission to delete employees.");
       return;
     }
-    
+
     if (currentEmployee) {
       deleteEmployeeMutation.mutate(currentEmployee.empno, {
         onSuccess: () => {
           setIsDeleteOpen(false);
           setCurrentEmployee(null);
+          // Refetch data after successful deletion
+          refetch();
+        },
+        onError: (err) => {
+            toast.error("Failed to delete employee", { description: err.message });
         }
       });
     }
   };
-  
+
   const handleRestoreEmployee = (employee: Employee) => {
     // Only admins can restore
     if (!isAdmin) {
       toast.error("Only admins can restore deleted employees.");
       return;
     }
-    
+
     restoreEmployeeMutation.mutate(employee.empno, {
       onSuccess: () => {
         refetch();
+      },
+      onError: (err) => {
+          toast.error("Failed to restore employee", { description: err.message });
       }
     });
   };
 
   const handleAddClick = () => {
+    // Only allow adding if user has permission OR is admin
     if (!canAdd && !isAdmin) {
       toast.error("You don't have permission to add employees.");
       return;
@@ -109,12 +122,13 @@ const Employees = () => {
     return (
       <DashboardLayout>
         <div className="flex justify-center py-8 text-red-500">
-          Error loading employees
+          Error loading employees: {error.message}
         </div>
       </DashboardLayout>
     );
   }
 
+  // This logic is correct for enabling/disabling the Add Employee button
   const hasAddPermission = canAdd || isAdmin;
 
   return (
@@ -160,8 +174,9 @@ const Employees = () => {
               onDeleteClick={handleDeleteClick}
               onJobHistoryClick={handleJobHistoryClick}
               onRestoreClick={isAdmin ? handleRestoreEmployee : undefined}
-              canEdit={canEdit || isAdmin}
-              canDelete={canDelete || isAdmin}
+              // --- DITO ANG PAGBABAGO: IPASA ANG TAMANG VALUE SA canEdit at canDelete ---
+              canEdit={canEdit || isAdmin} // <--- Gagamitin ang canEdit mula sa usePermission('employee')
+              canDelete={canDelete || isAdmin} // <--- Gagamitin ang canDelete mula sa usePermission('employee')
             />
           </CardContent>
         </Card>
@@ -175,32 +190,35 @@ const Employees = () => {
         />
       )}
 
+      {/* Conditional rendering for EditEmployeeDialog based on permission */}
       {(canEdit || isAdmin) && (
-        <EditEmployeeDialog
-          employee={currentEmployee}
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          onManageJobHistory={handleJobHistoryClick}
-        />
-      )}
+            <EditEmployeeDialog
+              employee={currentEmployee}
+              open={isEditOpen}
+              onOpenChange={setIsEditOpen}
+              onManageJobHistory={handleJobHistoryClick}
+            />
+          )}
 
-      {(canDelete || isAdmin) && (
-        <DeleteEmployeeDialog
-          employee={currentEmployee}
-          open={isDeleteOpen}
-          onOpenChange={setIsDeleteOpen}
-          onConfirmDelete={handleConfirmDelete}
-          isDeleting={deleteEmployeeMutation.isPending}
-        />
-      )}
+          {/* Conditional rendering for DeleteEmployeeDialog based on permission */}
+          {(canDelete || isAdmin) && (
+            <DeleteEmployeeDialog
+              employee={currentEmployee}
+              open={isDeleteOpen}
+              onOpenChange={setIsDeleteOpen}
+              onConfirmDelete={handleConfirmDelete} // Make sure this prop is handled in DeleteEmployeeDialog
+              isDeleting={deleteEmployeeMutation.isPending} // Make sure this prop is handled in DeleteEmployeeDialog
+            />
+          )}
 
-      <JobHistoryDialog
-        employee={currentEmployee}
-        open={isJobHistoryOpen}
-        onOpenChange={setIsJobHistoryOpen}
-      />
-    </DashboardLayout>
-  );
-};
+          <JobHistoryDialog
+            employee={currentEmployee}
+            open={isJobHistoryOpen}
+            onOpenChange={setIsJobHistoryOpen}
+          />
+        </DashboardLayout>
+      );
+    };
 
-export default Employees;
+    export default Employees;
+    
