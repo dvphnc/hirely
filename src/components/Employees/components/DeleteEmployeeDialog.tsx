@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { DeleteEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
-import { useAuth } from "@/context/auth-context"; // Siguraduhin na ang path na ito ay tama
+// --- BINAGO ANG IMPORT DITO ---
+// Gagamitin natin ang usePermission hook mula sa iyong auth-context.
+import { usePermission } from "@/context/auth-context"; // Siguraduhin na ang path na ito ay tama
 
 export const DeleteEmployeeDialog = ({
   employee,
@@ -11,29 +13,19 @@ export const DeleteEmployeeDialog = ({
   onOpenChange,
 }: DeleteEmployeeDialogProps) => {
   const { deleteEmployeeMutation } = useEmployeeMutations();
-  const { hasPermission } = useAuth(); // Ipinapalagay na ang useAuth ay nagbibigay ng hasPermission function
+  // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
+  // Gamitin ang usePermission hook para sa 'employees' table.
+  const { canDelete } = usePermission('employees'); // Kukunin ang 'canDelete' property para sa 'employees' table
 
   const handleDeleteConfirm = () => {
-    // --- SIMULA: Permission check bago mag-delete ---
-    // Siguraduhin na ang 'hasPermission' function ay tama ang implementasyon at available mula sa iyong auth-context.
-    // Palitan ang 'employee:delete' ng aktwal na permission string para sa pag-delete ng mga empleyado sa iyong system.
-    try {
-      if (typeof hasPermission === 'function' && !hasPermission('employee:delete')) {
-        console.error("Permission Denied: Ang user ay walang pahintulot na mag-delete ng mga empleyado.");
-        // Opsyonal, maaari kang magpakita ng user-friendly na mensahe sa user dito.
-        onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
-        return; // Mahalaga: Itigil ang function kung walang pahintulot
-      } else if (typeof hasPermission !== 'function') {
-        console.error("Ang permission check function na 'hasPermission' ay hindi available. Siguraduhin na ang iyong useAuth hook/context ay tama ang implementasyon.");
-        onOpenChange(false);
-        return;
-      }
-    } catch (error) {
-      console.error("Error sa panahon ng permission check:", error);
-      onOpenChange(false);
-      return;
+    // --- BINAGO ANG PERMISSION CHECK DITO ---
+    // Direkta nang gagamitin ang 'canDelete' na galing sa usePermission hook.
+    if (!canDelete) {
+      console.error("Permission Denied: Ang user ay walang pahintulot na mag-delete ng mga empleyado.");
+      // Opsyonal, maaari kang magpakita ng user-friendly na mensahe sa user dito.
+      onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
+      return; // Mahalaga: Itigil ang function kung walang pahintulot
     }
-    // --- TAPOS: Permission check ---
 
     if (employee?.empno) {
       deleteEmployeeMutation.mutate(employee.empno, {
@@ -71,7 +63,7 @@ export const DeleteEmployeeDialog = ({
           <Button
             variant="destructive"
             onClick={handleDeleteConfirm}
-            disabled={deleteEmployeeMutation.isPending || (typeof hasPermission === 'function' && !hasPermission('employee:delete'))} // I-disable kung walang pahintulot
+            disabled={deleteEmployeeMutation.isPending || !canDelete} // I-disable kung walang pahintulot
           >
             {deleteEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             I-delete
