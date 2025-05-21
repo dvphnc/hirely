@@ -25,10 +25,11 @@ export const updateAuditTrail = async (
   const timestamp = new Date().toISOString();
   
   // Combine audit data with any additional user data
-  const updateData: Record<string, unknown> = {
+  // Fix: Use a simple Record type to avoid type recursion
+  const updateData: Record<string, any> = {
     updated_by: userId,
     updated_at: timestamp,
-    ...userData
+    ...(userData || {}) // Safely spread userData if it exists
   };
   
   // For composite keys in jobhistory table
