@@ -15,7 +15,7 @@ export const updateAuditTrail = async (
   tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, any>
+  userData?: Record<string, any> // Using any here to avoid recursive type issues
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
@@ -25,10 +25,10 @@ export const updateAuditTrail = async (
   const timestamp = new Date().toISOString();
   
   // Combine audit data with any additional user data
-  const updateData = {
+  const updateData: Record<string, unknown> = {
     updated_by: userId,
     updated_at: timestamp,
-    ...(userData || {})
+    ...userData
   };
   
   // For composite keys in jobhistory table

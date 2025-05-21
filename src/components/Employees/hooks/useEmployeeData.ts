@@ -58,9 +58,10 @@ export const useEmployeeData = () => {
     }
   }, [employees]);
 
-  // Enhanced realtime subscription
+  // Enhanced realtime subscription with improved handling
   useEffect(() => {
-    const channel = supabase
+    // Create channel for employee changes
+    const employeeChannel = supabase
       .channel('employee-changes')
       .on(
         'postgres_changes',
@@ -71,9 +72,10 @@ export const useEmployeeData = () => {
         },
         (payload) => {
           console.log('Employee table change detected:', payload);
+          // Immediately invalidate query to refresh data
           queryClient.invalidateQueries({ queryKey: ["employees"] });
           
-          // Force refresh after a short delay to ensure changes are visible
+          // Additional invalidation after a short delay to ensure changes are visible
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["employees"] });
           }, 500);
@@ -91,12 +93,20 @@ export const useEmployeeData = () => {
           schema: 'public',
           table: 'jobhistory'
         },
-        () => {
+        (payload) => {
           // When job history changes, refresh employee data as well
-          console.log('Job history change detected, refreshing employee data');
+          console.log('Job history change detected, refreshing employee data:', payload);
+          
+          // Get the employee number from the payload to refresh specific employee data
+          const empno = payload.new?.empno || payload.old?.empno;
+          if (empno) {
+            console.log(`Refreshing data for employee ${empno}`);
+          }
+          
+          // Refresh all employees data
           queryClient.invalidateQueries({ queryKey: ["employees"] });
           
-          // Force refresh after a short delay
+          // Additional invalidation after a short delay
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["employees"] });
           }, 500);
@@ -104,8 +114,10 @@ export const useEmployeeData = () => {
       )
       .subscribe();
       
+    // Cleanup function to remove channels when component unmounts
     return () => {
-      supabase.removeChannel(channel);
+      console.log('Removing realtime subscriptions');
+      supabase.removeChannel(employeeChannel);
       supabase.removeChannel(jobHistoryChannel);
     };
   }, [queryClient]);

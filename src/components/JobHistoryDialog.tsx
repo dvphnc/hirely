@@ -22,6 +22,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
   // When dialog is opened, update employee status
   useEffect(() => {
     if (open && employee?.empno) {
+      console.log(`Updating employee ${employee.empno} audit trail on dialog open`);
       updateAuditTrail('employee', employee.empno, 'empno', {
         status: 'edited'
       }).catch(error => {

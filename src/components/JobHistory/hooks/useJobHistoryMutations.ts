@@ -27,14 +27,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       // First, update the employee record to show activity
       if (newJobHistory.empno) {
         try {
-          // Make sure this updates the employee status
+          // Make sure this updates the employee status and audit trail
           await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
             status: 'edited'
           });
           
           // Force a refresh of the employees query to show the updated status
           queryClient.invalidateQueries({ queryKey: ["employees"] });
-          
         } catch (error) {
           console.error("Error updating employee audit trail:", error);
         }
@@ -140,9 +139,16 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       // Also update the associated employee record to show activity
       if (jobHistory.empno) {
-        await updateAuditTrail('employee', jobHistory.empno, 'empno', {
-          status: 'edited'
-        });
+        try {
+          await updateAuditTrail('employee', jobHistory.empno, 'empno', {
+            status: 'edited'
+          });
+          
+          // Force a refresh of the employees query to show the updated status
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
+        } catch (error) {
+          console.error("Error updating employee audit trail on delete:", error);
+        }
       }
       
       // Create composite primary key for deletion
