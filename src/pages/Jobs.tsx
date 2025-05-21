@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +30,7 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, usePermission } from "@/context/auth-context";
-import { updateAuditTrail } from "@/utils/auditTrail";
+import { createAuditTrail } from "@/utils/auditTrail";
 import { useUserManagement } from "@/hooks/useUserManagement";
 
 // Form schema for job validation
@@ -77,6 +76,11 @@ const Jobs = () => {
   // Create job mutation
   const createJobMutation = useMutation({
     mutationFn: async (newJob: JobFormValues) => {
+      // Permission check
+      if (!canAdd && !isAdmin) {
+        throw new Error("You do not have permission to add jobs");
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
 
@@ -98,6 +102,12 @@ const Jobs = () => {
         .select();
       
       if (error) throw new Error(error.message);
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'INSERT', 'job');
+      }
+      
       return data[0];
     },
     onSuccess: () => {
@@ -113,19 +123,35 @@ const Jobs = () => {
   // Update job mutation
   const updateJobMutation = useMutation({
     mutationFn: async (job: JobFormValues) => {
-      await updateAuditTrail('job', job.jobcode, 'jobcode', {
-        jobdesc: job.jobdesc,
-        status: 'edited'
-      });
+      // Permission check
+      if (!canEdit && !isAdmin) {
+        throw new Error("You do not have permission to edit jobs");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
       
       const { data, error } = await supabase
         .from("job")
-        .select()
+        .update({
+          jobdesc: job.jobdesc,
+          status: 'edited',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq("jobcode", job.jobcode)
-        .single();
+        .select();
       
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'UPDATE', 'job');
+      }
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
@@ -140,18 +166,42 @@ const Jobs = () => {
   // Delete job mutation
   const deleteJobMutation = useMutation({
     mutationFn: async (jobcode: string) => {
-      await updateAuditTrail('job', jobcode, 'jobcode', {
-        status: 'deleted'
-      });
+      // Permission check
+      if (!canDelete && !isAdmin) {
+        throw new Error("You do not have permission to delete jobs");
+      }
       
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
+      
+      // First get the job record
+      const { data: jobData, error: fetchError } = await supabase
         .from("job")
-        .select()
+        .select('*')
         .eq("jobcode", jobcode)
         .single();
       
+      if (fetchError) throw new Error(fetchError.message);
+      
+      // Then update it to mark as deleted
+      const { data, error } = await supabase
+        .from("job")
+        .update({
+          status: 'deleted',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq("jobcode", jobcode)
+        .select();
+      
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      await createAuditTrail(jobData, 'DELETE', 'job');
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
@@ -166,18 +216,34 @@ const Jobs = () => {
   // Restore job mutation
   const restoreJobMutation = useMutation({
     mutationFn: async (jobcode: string) => {
-      await updateAuditTrail('job', jobcode, 'jobcode', {
-        status: 'restored'
-      });
+      // Only admins can restore
+      if (!isAdmin) {
+        throw new Error("Only administrators can restore deleted jobs");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
       
       const { data, error } = await supabase
         .from("job")
-        .select()
+        .update({
+          status: 'restored',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq("jobcode", jobcode)
-        .single();
+        .select();
       
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'UPDATE', 'job');
+      }
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });

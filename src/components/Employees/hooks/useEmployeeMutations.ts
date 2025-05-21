@@ -1,15 +1,24 @@
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmployeeFormValues } from "../types/EmployeeTypes";
-import { updateAuditTrail } from "@/utils/auditTrail";
+import { createAuditTrail } from "@/utils/auditTrail";
+import { usePermission, useAuth } from "@/context/auth-context";
 
 export const useEmployeeMutations = () => {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { canAdd, canEdit, canDelete } = usePermission('employee');
 
   // Create mutation
   const createEmployeeMutation = useMutation({
     mutationFn: async (newEmployee: EmployeeFormValues) => {
+      // Permission check
+      if (!canAdd && !isAdmin) {
+        throw new Error("You do not have permission to add employees");
+      }
+      
       // Ensure empno is present since it's required by the database
       if (!newEmployee.empno) {
         throw new Error("Employee number is required");
@@ -53,6 +62,10 @@ export const useEmployeeMutations = () => {
         .select();
 
       if (error) throw error;
+      
+      // Create audit trail
+      await createAuditTrail(data[0], 'INSERT', 'employee');
+      
       return data[0];
     },
     onSuccess: () => {
@@ -67,29 +80,45 @@ export const useEmployeeMutations = () => {
   // Update mutation
   const updateEmployeeMutation = useMutation({
     mutationFn: async (employee: EmployeeFormValues) => {
+      // Permission check
+      if (!canEdit && !isAdmin) {
+        throw new Error("You do not have permission to edit employees");
+      }
+      
       // Ensure empno is present since it's required for updates
       if (!employee.empno) {
         throw new Error("Employee number is required for updates");
       }
       
-      await updateAuditTrail('employee', employee.empno, 'empno', {
-        firstname: employee.firstname,
-        lastname: employee.lastname,
-        gender: employee.gender,
-        birthdate: employee.birthdate,
-        hiredate: employee.hiredate,
-        sepdate: employee.sepdate,
-        status: 'edited'
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       const { data, error } = await supabase
         .from('employee')
-        .select()
+        .update({
+          firstname: employee.firstname,
+          lastname: employee.lastname,
+          gender: employee.gender,
+          birthdate: employee.birthdate,
+          hiredate: employee.hiredate,
+          sepdate: employee.sepdate,
+          status: 'edited',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq('empno', employee.empno)
-        .single();
+        .select();
 
       if (error) throw error;
-      return data;
+      
+      // Create audit trail
+      await createAuditTrail(data[0], 'UPDATE', 'employee');
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -103,19 +132,44 @@ export const useEmployeeMutations = () => {
   // Delete mutation
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
-      // Soft delete - update status to deleted
-      await updateAuditTrail('employee', employeeId, 'empno', {
-        status: 'deleted'
-      });
+      // Permission check
+      if (!canDelete && !isAdmin) {
+        throw new Error("You do not have permission to delete employees");
+      }
       
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
+      
+      // First get the employee record
+      const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
-        .select()
+        .select('*')
         .eq('empno', employeeId)
         .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Then update it to mark as deleted
+      const { data, error } = await supabase
+        .from('employee')
+        .update({
+          status: 'deleted',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('empno', employeeId)
+        .select();
 
       if (error) throw error;
-      return data;
+      
+      // Create audit trail
+      await createAuditTrail(employeeData, 'DELETE', 'employee');
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -129,18 +183,34 @@ export const useEmployeeMutations = () => {
   // Restore mutation
   const restoreEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
-      await updateAuditTrail('employee', employeeId, 'empno', {
-        status: 'restored'
-      });
+      // Only admins can restore
+      if (!isAdmin) {
+        throw new Error("Only administrators can restore deleted employees");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       const { data, error } = await supabase
         .from('employee')
-        .select()
+        .update({
+          status: 'restored',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq('empno', employeeId)
-        .single();
+        .select();
 
       if (error) throw error;
-      return data;
+      
+      // Create audit trail
+      await createAuditTrail(data[0], 'UPDATE', 'employee');
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });

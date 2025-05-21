@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { EmployeeFormValues, employeeSchema, EditEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
-import { updateAuditTrail } from "@/utils/auditTrail";
+import { createAuditTrail } from "@/utils/auditTrail";
 
 export const EditEmployeeDialog = ({ 
   employee, 
@@ -68,13 +69,18 @@ export const EditEmployeeDialog = ({
   };
 
   const handleJobHistoryClick = async () => {
-    // Update the audit trail when job history is accessed
+    // Log access to job history in audit trail
     if (employee?.empno) {
       try {
         // Mark the employee record as being viewed for job history
-        await updateAuditTrail('employee', employee.empno, 'empno', {
-          status: 'edited' // Update status to show interaction
-        });
+        await createAuditTrail(
+          { 
+            empno: employee.empno,
+            status: 'viewed_job_history'
+          },
+          'UPDATE',
+          'employee'
+        );
       } catch (error) {
         console.error("Error updating employee audit trail:", error);
       }

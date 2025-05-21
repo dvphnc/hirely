@@ -16,7 +16,8 @@ type ValidTableName =
   | "sales"
   | "pricehist"
   | "product"
-  | "salesdetail";
+  | "salesdetail"
+  | "audit_trail";  // Added audit_trail as a valid table name
 
 /**
  * Create an audit trail record
@@ -63,6 +64,30 @@ export const createAuditTrail = async <T extends Record<string, any>>(
   }
 };
 
+/**
+ * Update an audit trail record - wraps createAuditTrail for backward compatibility
+ * @param tableName The name of the table that was affected
+ * @param recordId The ID of the record
+ * @param idField The name of the ID field
+ * @param updateData The data that was updated
+ * @returns Promise<{ error: PostgrestError | null }>
+ */
+export const updateAuditTrail = async (
+  tableName: ValidTableName,
+  recordId: string | number,
+  idField: string,
+  updateData: Record<string, any>
+): Promise<{ error: PostgrestError | null }> => {
+  // Create an object that mimics the record structure with the ID field
+  const recordData = {
+    [idField]: recordId,
+    ...updateData
+  };
+  
+  // Use createAuditTrail to record the update
+  return createAuditTrail(recordData, 'UPDATE', tableName);
+};
+
 // Function to extract the record ID from the data based on table name
 function extractRecordId<T extends Record<string, any>>(data: T, tableName: ValidTableName): string | number | Record<string, any> {
   switch (tableName) {
@@ -103,6 +128,8 @@ function extractRecordId<T extends Record<string, any>>(data: T, tableName: Vali
         invno: data.invno,
         prodcode: data.prodcode
       };
+    case 'audit_trail':
+      return { id: data.id };
     default:
       // Return the full data for unknown tables - this should not happen with our type definition
       return data;

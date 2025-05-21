@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +32,7 @@ import { useAuth, usePermission } from "@/context/auth-context";
 import { Label } from "@/components/ui/label";
 import { updateAuditTrail } from "@/utils/auditTrail";
 import { useUserManagement } from "@/hooks/useUserManagement";
+import { createAuditTrail } from "@/utils/auditTrail";
 
 // Form schema for department validation
 const departmentSchema = z.object({
@@ -77,6 +77,11 @@ const Departments = () => {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (newDepartment: DepartmentFormValues) => {
+      // Permission check
+      if (!canAdd && !isAdmin) {
+        throw new Error("You do not have permission to add departments");
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
 
@@ -98,6 +103,12 @@ const Departments = () => {
         .select();
       
       if (error) throw new Error(error.message);
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'INSERT', 'department');
+      }
+      
       return data[0];
     },
     onSuccess: () => {
@@ -113,19 +124,35 @@ const Departments = () => {
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (department: DepartmentFormValues) => {
-      await updateAuditTrail('department', department.deptcode, 'deptcode', {
-        deptname: department.deptname,
-        status: 'edited'
-      });
+      // Permission check
+      if (!canEdit && !isAdmin) {
+        throw new Error("You do not have permission to edit departments");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
       
       const { data, error } = await supabase
         .from("department")
-        .select()
+        .update({
+          deptname: department.deptname,
+          status: 'edited',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq("deptcode", department.deptcode)
-        .single();
+        .select();
       
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'UPDATE', 'department');
+      }
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -140,18 +167,42 @@ const Departments = () => {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (deptcode: string) => {
-      await updateAuditTrail('department', deptcode, 'deptcode', {
-        status: 'deleted'
-      });
+      // Permission check
+      if (!canDelete && !isAdmin) {
+        throw new Error("You do not have permission to delete departments");
+      }
       
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
+      
+      // First get the department record
+      const { data: deptData, error: fetchError } = await supabase
         .from("department")
-        .select()
+        .select('*')
         .eq("deptcode", deptcode)
         .single();
       
+      if (fetchError) throw new Error(fetchError.message);
+      
+      // Then update it to mark as deleted
+      const { data, error } = await supabase
+        .from("department")
+        .update({
+          status: 'deleted',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq("deptcode", deptcode)
+        .select();
+      
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      await createAuditTrail(deptData, 'DELETE', 'department');
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -166,18 +217,34 @@ const Departments = () => {
   // Restore department mutation
   const restoreDepartmentMutation = useMutation({
     mutationFn: async (deptcode: string) => {
-      await updateAuditTrail('department', deptcode, 'deptcode', {
-        status: 'restored'
-      });
+      // Only admins can restore
+      if (!isAdmin) {
+        throw new Error("Only administrators can restore deleted departments");
+      }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      if (!userId) throw new Error("User not authenticated");
       
       const { data, error } = await supabase
         .from("department")
-        .select()
+        .update({
+          status: 'restored',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq("deptcode", deptcode)
-        .single();
+        .select();
       
       if (error) throw new Error(error.message);
-      return data;
+      
+      // Create audit trail
+      if (data && data.length > 0) {
+        await createAuditTrail(data[0], 'UPDATE', 'department');
+      }
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
