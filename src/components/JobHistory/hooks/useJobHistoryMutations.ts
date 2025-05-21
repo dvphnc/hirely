@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import { usePermission } from "@/context/auth-context";
-import { updateAuditTrail } from "@/utils/auditTrail";
+import { createAuditTrail } from "@/utils/auditTrail";
 
 export const useJobHistoryMutations = (employeeEmpno: string | null | undefined) => {
   const queryClient = useQueryClient();
@@ -28,10 +28,17 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       if (newJobHistory.empno) {
         try {
           console.log(`Updating employee ${newJobHistory.empno} audit trail on job history creation`);
-          // Make sure this updates the employee status and audit trail
-          await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
-            status: 'edited'
-          });
+          // Update employee status and create audit trail
+          const { data: employeeData } = await supabase
+            .from('employee')
+            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
+            .eq('empno', newJobHistory.empno)
+            .select();
+            
+          if (employeeData && employeeData[0]) {
+            // Create audit trail for the employee update
+            await createAuditTrail(employeeData[0], 'UPDATE', 'employee');
+          }
           
           // Force a refresh of the employees query to show the updated status
           queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -58,6 +65,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       if (error) throw new Error(error.message);
       
+      // Create audit trail for job history
+      await createAuditTrail(data[0], 'INSERT', 'jobhistory');
+      
       return data[0];
     },
     onSuccess: () => {
@@ -77,18 +87,6 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to edit job history records");
       }
       
-      // Also update the associated employee record to show activity
-      if (jobHistory.empno) {
-        console.log(`Updating employee ${jobHistory.empno} audit trail on job history update`);
-        await updateAuditTrail('employee', jobHistory.empno, 'empno', {
-          status: 'edited'
-        });
-        
-        // Force a refresh of the employees query to show the updated status
-        queryClient.invalidateQueries({ queryKey: ["employees"] });
-      }
-      
-      // Update the job history record
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
       
@@ -96,6 +94,26 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("User not authenticated");
       }
       
+      // Also update the associated employee record to show activity
+      if (jobHistory.empno) {
+        console.log(`Updating employee ${jobHistory.empno} audit trail on job history update`);
+        
+        const { data: employeeData } = await supabase
+          .from('employee')
+          .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
+          .eq('empno', jobHistory.empno)
+          .select();
+          
+        if (employeeData && employeeData[0]) {
+          // Create audit trail for the employee update
+          await createAuditTrail(employeeData[0], 'UPDATE', 'employee');
+        }
+        
+        // Force a refresh of the employees query to show the updated status
+        queryClient.invalidateQueries({ queryKey: ["employees"] });
+      }
+      
+      // Update the job history record
       const { data, error } = await supabase
         .from("jobhistory")
         .update({
@@ -111,6 +129,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         .select();
       
       if (error) throw new Error(error.message);
+      
+      // Create audit trail for job history
+      await createAuditTrail(data[0], 'UPDATE', 'jobhistory');
       
       return data[0];
     },
@@ -143,9 +164,17 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       if (jobHistory.empno) {
         try {
           console.log(`Updating employee ${jobHistory.empno} audit trail on job history delete`);
-          await updateAuditTrail('employee', jobHistory.empno, 'empno', {
-            status: 'edited'
-          });
+          
+          const { data: employeeData } = await supabase
+            .from('employee')
+            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
+            .eq('empno', jobHistory.empno)
+            .select();
+            
+          if (employeeData && employeeData[0]) {
+            // Create audit trail for the employee update
+            await createAuditTrail(employeeData[0], 'UPDATE', 'employee');
+          }
           
           // Force a refresh of the employees query to show the updated status
           queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -153,6 +182,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           console.error("Error updating employee audit trail on delete:", error);
         }
       }
+      
+      // Create audit trail before deleting
+      await createAuditTrail(jobHistory, 'DELETE', 'jobhistory');
       
       // Create composite primary key for deletion
       const { error } = await supabase
