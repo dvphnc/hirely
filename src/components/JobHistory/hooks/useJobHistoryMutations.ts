@@ -24,9 +24,10 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("User not authenticated");
       }
 
-      // First, update the employee record to show activity
+      // Always update the employee record to show activity regardless of user role
       if (newJobHistory.empno) {
         try {
+          console.log(`Updating employee ${newJobHistory.empno} audit trail on job history creation`);
           // Make sure this updates the employee status and audit trail
           await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
             status: 'edited'
@@ -81,9 +82,13 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       // Also update the associated employee record to show activity
       if (jobHistory.empno) {
+        console.log(`Updating employee ${jobHistory.empno} audit trail on job history update`);
         await updateAuditTrail('employee', jobHistory.empno, 'empno', {
           status: 'edited'
         });
+        
+        // Force a refresh of the employees query to show the updated status
+        queryClient.invalidateQueries({ queryKey: ["employees"] });
       }
       
       await updateAuditTrail(
@@ -137,9 +142,10 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("User not authenticated");
       }
       
-      // Also update the associated employee record to show activity
+      // Always update the associated employee record to show activity
       if (jobHistory.empno) {
         try {
+          console.log(`Updating employee ${jobHistory.empno} audit trail on job history delete`);
           await updateAuditTrail('employee', jobHistory.empno, 'empno', {
             status: 'edited'
           });

@@ -73,13 +73,10 @@ export function EmployeeTable({
             <TableHead>Gender</TableHead>
             <TableHead>Birth Date</TableHead>
             <TableHead>Hire Date</TableHead>
-            {isAdmin && (
-              <>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead>Updated By</TableHead>
-              </>
-            )}
+            {/* Show Last Updated and Updated By columns for all users, not just admins */}
+            <TableHead>Status</TableHead>
+            <TableHead>Last Updated</TableHead>
+            <TableHead>Updated By</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -96,32 +93,29 @@ export function EmployeeTable({
               <TableCell>{employee.gender || "N/A"}</TableCell>
               <TableCell>{formatDate(employee.birthdate)}</TableCell>
               <TableCell>{formatDate(employee.hiredate)}</TableCell>
-              {isAdmin && (
-                <>
-                  <TableCell>
-                    <span
-                      className={`capitalize ${
-                        employee.status === 'deleted'
-                          ? 'text-red-500'
-                          : employee.status === 'edited'
-                          ? 'text-amber-500'
-                          : employee.status === 'restored'
-                          ? 'text-blue-500'
-                          : 'text-green-500'
-                      }`}
-                    >
-                      {employee.status || 'active'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {employee.updated_at ? formatDateTime(employee.updated_at) : 
-                     employee.stamp ? formatDateTime(employee.stamp) : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {employee.updated_by ? getUserEmail(employee.updated_by) : 'N/A'}
-                  </TableCell>
-                </>
-              )}
+              {/* Show status, last updated, and updated by for all users */}
+              <TableCell>
+                <span
+                  className={`capitalize ${
+                    employee.status === 'deleted'
+                      ? 'text-red-500'
+                      : employee.status === 'edited'
+                      ? 'text-amber-500'
+                      : employee.status === 'restored'
+                      ? 'text-blue-500'
+                      : 'text-green-500'
+                  }`}
+                >
+                  {employee.status || 'active'}
+                </span>
+              </TableCell>
+              <TableCell>
+                {employee.updated_at ? formatDateTime(employee.updated_at) : 
+                 employee.stamp ? formatDateTime(employee.stamp) : 'N/A'}
+              </TableCell>
+              <TableCell>
+                {employee.updated_by ? getUserEmail(employee.updated_by) : 'N/A'}
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button
@@ -164,4 +158,4 @@ export function EmployeeTable({
       </Table>
     </div>
   );
-}
+};
