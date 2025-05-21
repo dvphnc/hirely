@@ -120,7 +120,7 @@ export function EmployeeTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  {canEdit ? (
+                  {canEdit && employee.status !== 'deleted' ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -151,7 +151,7 @@ export function EmployeeTable({
                     <History className="h-4 w-4" />
                   </Button>
 
-                  {isAdmin && employee.status === 'deleted' && onRestoreClick && (
+                  {isAdmin && employee.status === 'deleted' && onRestoreClick ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -161,9 +161,9 @@ export function EmployeeTable({
                     >
                       <RefreshCcw className="h-4 w-4" />
                     </Button>
-                  )}
+                  ) : null}
 
-                  {canDelete ? (
+                  {canDelete && employee.status !== 'deleted' ? (
                     <Button
                       variant="outline"
                       size="sm"

@@ -131,7 +131,7 @@ const Employees = () => {
             </Button>
           ) : (
             <Button
-              className="instagram-gradient opacity-50 cursor-not-allowed"
+              className="opacity-50 cursor-not-allowed"
               disabled={true}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Employee

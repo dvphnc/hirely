@@ -104,6 +104,7 @@ const JobHistoryTable = ({
                           variant="outline"
                           size="sm"
                           onClick={() => onEditClick(history)}
+                          aria-label="Edit job history"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -113,6 +114,8 @@ const JobHistoryTable = ({
                           size="sm"
                           disabled
                           className="opacity-50 cursor-not-allowed"
+                          aria-label="Edit job history (disabled)"
+                          aria-disabled="true"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -124,6 +127,7 @@ const JobHistoryTable = ({
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           onClick={() => onDeleteClick(history)}
+                          aria-label="Delete job history"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -133,6 +137,8 @@ const JobHistoryTable = ({
                           size="sm"
                           disabled
                           className="opacity-50 cursor-not-allowed text-destructive"
+                          aria-label="Delete job history (disabled)"
+                          aria-disabled="true"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

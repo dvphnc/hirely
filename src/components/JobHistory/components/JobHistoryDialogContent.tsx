@@ -58,7 +58,7 @@ export const JobHistoryDialogContent: React.FC<JobHistoryDialogContentProps> = (
         
         <div className="flex justify-end space-x-2">
           {canAdd ? (
-            <Button onClick={onAddClick}>
+            <Button onClick={onAddClick} className="instagram-gradient">
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>
           ) : (
