@@ -52,14 +52,20 @@ export const JobHistoryDialogContent: React.FC<JobHistoryDialogContentProps> = (
           onEditClick={onEditClick} 
           onDeleteClick={onDeleteClick}
           removingKey={removingKey}
-          canEdit={canEdit} 
+          canEdit={canEdit}
           canDelete={canDelete}
         />
         
         <div className="flex justify-end space-x-2">
-          <Button onClick={onAddClick} disabled={!canAdd}> 
-            <Plus className="mr-2 h-4 w-4" /> Add Job History
-          </Button>
+          {canAdd && (
+            <Button 
+              onClick={onAddClick} 
+              disabled={!canAdd} 
+              className={!canAdd ? "opacity-50 cursor-not-allowed" : ""}
+            > 
+              <Plus className="mr-2 h-4 w-4" /> Add Job History
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

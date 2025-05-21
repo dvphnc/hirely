@@ -125,10 +125,12 @@ export function EmployeeTable({
                       variant="outline"
                       size="sm"
                       onClick={() => onEditClick(employee)}
+                      className={!canEdit ? "opacity-50 cursor-not-allowed" : ""}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -136,6 +138,7 @@ export function EmployeeTable({
                   >
                     <History className="h-4 w-4" />
                   </Button>
+
                   {isAdmin && employee.status === 'deleted' && onRestoreClick && (
                     <Button
                       variant="outline"
@@ -146,11 +149,12 @@ export function EmployeeTable({
                       <RefreshCcw className="h-4 w-4" />
                     </Button>
                   )}
+
                   {canDelete && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-500 hover:text-red-700"
+                      className={`text-red-500 hover:text-red-700 ${!canDelete ? "opacity-50 cursor-not-allowed" : ""}`}
                       onClick={() => onDeleteClick(employee)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -164,4 +168,4 @@ export function EmployeeTable({
       </Table>
     </div>
   );
-};
+}

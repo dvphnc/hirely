@@ -106,15 +106,18 @@ const Employees = () => {
     );
   }
 
+  const hasAddPermission = canAdd || isAdmin;
+
   return (
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Employees</h1>
           <Button
-            className="instagram-gradient"
-            onClick={() => setIsAddOpen(true)}
-            disabled={!canAdd && !isAdmin}
+            className={`instagram-gradient ${!hasAddPermission ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => hasAddPermission && setIsAddOpen(true)}
+            disabled={!hasAddPermission}
+            aria-disabled={!hasAddPermission}
           >
             <Plus className="mr-2 h-4 w-4" /> Add Employee
           </Button>
@@ -148,26 +151,32 @@ const Employees = () => {
         </Card>
       </div>
 
-      <AddEmployeeDialog
-        open={isAddOpen}
-        onOpenChange={setIsAddOpen}
-        nextEmpNo={nextEmpNo}
-      />
+      {hasAddPermission && (
+        <AddEmployeeDialog
+          open={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          nextEmpNo={nextEmpNo}
+        />
+      )}
 
-      <EditEmployeeDialog
-        employee={currentEmployee}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        onManageJobHistory={handleJobHistoryClick}
-      />
+      {(canEdit || isAdmin) && (
+        <EditEmployeeDialog
+          employee={currentEmployee}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          onManageJobHistory={handleJobHistoryClick}
+        />
+      )}
 
-      <DeleteEmployeeDialog
-        employee={currentEmployee}
-        open={isDeleteOpen}
-        onOpenChange={setIsDeleteOpen}
-        onConfirmDelete={handleConfirmDelete}
-        isDeleting={deleteEmployeeMutation.isPending}
-      />
+      {(canDelete || isAdmin) && (
+        <DeleteEmployeeDialog
+          employee={currentEmployee}
+          open={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          onConfirmDelete={handleConfirmDelete}
+          isDeleting={deleteEmployeeMutation.isPending}
+        />
+      )}
 
       <JobHistoryDialog
         employee={currentEmployee}

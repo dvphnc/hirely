@@ -3,11 +3,11 @@ import React from "react";
 import { Employee } from "@/types/supabase";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import { useJobHistoryMutations } from "../hooks/useJobHistoryMutations";
-import { usePermission } from "@/context/auth-context";
+import { usePermission, useAuth } from "@/context/auth-context";
 
 interface JobHistoryActionHandlersProps {
   employee: Employee | null;
-  currentJobHistory: JobHistoryWithDetails | null; // Added this prop
+  currentJobHistory: JobHistoryWithDetails | null;
   setCurrentJobHistory: (jobHistory: JobHistoryWithDetails | null) => void;
   setIsAddOpen: (open: boolean) => void;
   setIsEditOpen: (open: boolean) => void;
@@ -29,13 +29,14 @@ interface JobHistoryActionHandlersProps {
 
 export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> = ({
   employee,
-  currentJobHistory, // Added this prop
+  currentJobHistory,
   setCurrentJobHistory,
   setIsAddOpen,
   setIsEditOpen,
   setIsDeleteOpen,
   children,
 }) => {
+  const { isAdmin } = useAuth();
   const { canAdd, canEdit, canDelete } = usePermission('jobhistory');
   const { 
     createJobHistoryMutation, 
@@ -44,7 +45,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   } = useJobHistoryMutations(employee?.empno);
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
-    if (!canEdit) { 
+    if (!canEdit && !isAdmin) { 
       console.warn("User does not have permission to edit job history.");
       return; 
     }
@@ -53,7 +54,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
-    if (!canDelete) { 
+    if (!canDelete && !isAdmin) { 
       console.warn("User does not have permission to delete job history.");
       return;
     }
@@ -62,7 +63,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
-    if (!canAdd) {
+    if (!canAdd && !isAdmin) {
       console.warn("User does not have permission to add job history.");
       return;
     }
@@ -74,7 +75,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
-    if (!canEdit) {
+    if (!canEdit && !isAdmin) {
       console.warn("User does not have permission to update job history via form submission.");
       return;
     }
@@ -87,7 +88,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleDeleteJobHistory = () => {
-    if (!canDelete) {
+    if (!canDelete && !isAdmin) {
       console.warn("User does not have permission to delete job history via confirmation.");
       return;
     }
@@ -114,9 +115,9 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
         createJobHistoryMutation,
         updateJobHistoryMutation,
         deleteJobHistoryMutation,
-        canAdd,
-        canEdit,
-        canDelete,
+        canAdd: canAdd || isAdmin,
+        canEdit: canEdit || isAdmin,
+        canDelete: canDelete || isAdmin,
       })}
     </>
   );
