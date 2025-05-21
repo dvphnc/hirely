@@ -77,9 +77,6 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         throw new Error("You don't have permission to edit job history records");
       }
       
-      // Create a composite ID for the job history record
-      const compositeId = `${jobHistory.empno}-${jobHistory.jobcode}-${jobHistory.effdate}`;
-      
       // Also update the associated employee record to show activity
       if (jobHistory.empno) {
         console.log(`Updating employee ${jobHistory.empno} audit trail on job history update`);
@@ -91,31 +88,31 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         queryClient.invalidateQueries({ queryKey: ["employees"] });
       }
       
-      await updateAuditTrail(
-        "jobhistory", 
-        compositeId, 
-        "combined_id",
-        {
-          empno: jobHistory.empno,
-          jobcode: jobHistory.jobcode,
-          deptcode: jobHistory.deptcode,
-          effdate: jobHistory.effdate,
-          salary: jobHistory.salary,
-          status: 'edited'
-        }
-      );
+      // Update the job history record
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       const { data, error } = await supabase
         .from("jobhistory")
-        .select()
+        .update({
+          deptcode: jobHistory.deptcode,
+          salary: jobHistory.salary,
+          status: 'edited',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .eq("empno", jobHistory.empno)
         .eq("jobcode", jobHistory.jobcode)
         .eq("effdate", jobHistory.effdate)
-        .single();
+        .select();
       
       if (error) throw new Error(error.message);
       
-      return data;
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobHistory", employeeEmpno] });

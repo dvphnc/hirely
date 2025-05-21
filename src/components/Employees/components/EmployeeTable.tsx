@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
@@ -73,7 +72,6 @@ export function EmployeeTable({
             <TableHead>Gender</TableHead>
             <TableHead>Birth Date</TableHead>
             <TableHead>Hire Date</TableHead>
-            {/* Show Last Updated and Updated By columns for all users, not just admins */}
             <TableHead>Status</TableHead>
             <TableHead>Last Updated</TableHead>
             <TableHead>Updated By</TableHead>
@@ -93,7 +91,6 @@ export function EmployeeTable({
               <TableCell>{employee.gender || "N/A"}</TableCell>
               <TableCell>{formatDate(employee.birthdate)}</TableCell>
               <TableCell>{formatDate(employee.hiredate)}</TableCell>
-              {/* Show status, last updated, and updated by for all users */}
               <TableCell>
                 <span
                   className={`capitalize ${

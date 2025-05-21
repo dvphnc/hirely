@@ -15,7 +15,7 @@ export const updateAuditTrail = async (
   tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, any> // Using any here to avoid recursive type issues
+  userData: Record<string, any> = {} // Using Record<string, any> instead of generic object type
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
@@ -25,11 +25,10 @@ export const updateAuditTrail = async (
   const timestamp = new Date().toISOString();
   
   // Combine audit data with any additional user data
-  // Fix: Use a simple Record type to avoid type recursion
   const updateData: Record<string, any> = {
     updated_by: userId,
     updated_at: timestamp,
-    ...(userData || {}) // Safely spread userData if it exists
+    ...userData // Safely spread userData if it exists
   };
   
   // For composite keys in jobhistory table

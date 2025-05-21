@@ -98,11 +98,14 @@ export const useEmployeeData = () => {
           console.log('Job history change detected, refreshing employee data:', payload);
           
           // Get the employee number from the payload to refresh specific employee data
-          // Fix for TypeScript error - check if properties exist before accessing
-          const empno = payload.new && 'empno' in payload.new 
-            ? payload.new.empno 
-            : payload.old && 'empno' in payload.old 
-              ? payload.old.empno 
+          // Fix for TypeScript error - use type guards to safely access properties
+          const newData = payload.new as Record<string, any> | null;
+          const oldData = payload.old as Record<string, any> | null;
+          
+          const empno = newData && 'empno' in newData 
+            ? newData.empno 
+            : oldData && 'empno' in oldData 
+              ? oldData.empno 
               : null;
           
           if (empno) {
