@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
@@ -132,7 +133,7 @@ export function EmployeeTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={true}
+                      disabled
                       className="opacity-50 cursor-not-allowed"
                       aria-label="Edit employee (disabled)"
                       aria-disabled="true"
@@ -176,7 +177,7 @@ export function EmployeeTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={true}
+                      disabled
                       className="opacity-50 cursor-not-allowed text-red-500"
                       aria-label="Delete employee (disabled)"
                       aria-disabled="true"

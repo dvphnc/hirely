@@ -45,9 +45,9 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
     deleteJobHistoryMutation 
   } = useJobHistoryMutations(employee?.empno);
 
+  const hasAddPermission = canAdd || isAdmin;
   const hasEditPermission = canEdit || isAdmin;
   const hasDeletePermission = canDelete || isAdmin;
-  const hasAddPermission = canAdd || isAdmin;
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
     if (!hasEditPermission) { 

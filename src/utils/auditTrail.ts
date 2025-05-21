@@ -1,7 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 
-// Define valid table names explicitly to avoid the type recursion issue
-type ValidTableNames = 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Updates a record with audit trail information
@@ -11,11 +9,18 @@ type ValidTableNames = 'employee' | 'job' | 'department' | 'jobhistory' | 'profi
  * @param userData Optional additional data to update along with audit information
  */
 export const updateAuditTrail = async (
-  tableName: ValidTableNames, 
+  tableName: string, 
   id: string | number, 
   primaryKeyField: string,
   userData: Record<string, any> = {}
 ): Promise<void> => {
+  // Make sure we only accept valid table names
+  const validTables = ['employee', 'job', 'department', 'jobhistory', 'profiles', 'user_permissions'];
+  if (!validTables.includes(tableName)) {
+    console.error(`Invalid table name: ${tableName}`);
+    return;
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
   

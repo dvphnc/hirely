@@ -99,7 +99,7 @@ const JobHistoryTable = ({
                   )}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {canEdit && (
+                      {canEdit ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -107,19 +107,18 @@ const JobHistoryTable = ({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
-                      {!canEdit && (
+                      ) : (
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={true}
+                          disabled
                           className="opacity-50 cursor-not-allowed"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
                       
-                      {canDelete && (
+                      {canDelete ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -128,12 +127,11 @@ const JobHistoryTable = ({
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      {!canDelete && (
+                      ) : (
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={true}
+                          disabled
                           className="opacity-50 cursor-not-allowed text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
