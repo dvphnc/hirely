@@ -15,7 +15,7 @@ export const updateAuditTrail = async (
   tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
-  userData?: Record<string, unknown>
+  userData?: Record<string, any>
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
