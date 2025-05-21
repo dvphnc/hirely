@@ -337,17 +337,20 @@ export const usePermission = (tableName: string) => {
     return { canAdd: true, canEdit: true, canDelete: true };
   }
   
-  // If user role is 'user', deny all permissions for specified tables
+  // Strictly enforce restrictions for 'user' role on specified tables
+  // regardless of checkbox settings in permissions
   if (profile?.role === 'user') {
     const restrictedTables = ['employee', 'jobhistory', 'job', 'department'];
-    if (restrictedTables.includes(tableName)) {
+    if (restrictedTables.includes(tableName.toLowerCase())) {
       console.log(`User with 'user' role denied permission for ${tableName} table`);
       return { canAdd: false, canEdit: false, canDelete: false };
     }
   }
   
-  // Find permissions for the specified table
-  const tablePermissions = permissions.find(p => p.table_name === tableName);
+  // For other tables or other user roles, check specific permissions
+  const tablePermissions = permissions.find(p => 
+    p.table_name.toLowerCase() === tableName.toLowerCase()
+  );
   
   return {
     canAdd: tablePermissions?.can_add || false,
