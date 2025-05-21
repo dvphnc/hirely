@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +57,7 @@ export const useEmployeeData = () => {
     }
   }, [employees]);
 
+  // Enhanced realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel('employee-changes')
@@ -68,14 +68,44 @@ export const useEmployeeData = () => {
           schema: 'public',
           table: 'employee'
         },
-        () => {
+        (payload) => {
+          console.log('Employee table change detected:', payload);
           queryClient.invalidateQueries({ queryKey: ["employees"] });
+          
+          // Force refresh after a short delay to ensure changes are visible
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+          }, 500);
+        }
+      )
+      .subscribe();
+      
+    // Also subscribe to job history changes as they affect employee statuses
+    const jobHistoryChannel = supabase
+      .channel('jobhistory-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobhistory'
+        },
+        () => {
+          // When job history changes, refresh employee data as well
+          console.log('Job history change detected, refreshing employee data');
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
+          
+          // Force refresh after a short delay
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+          }, 500);
         }
       )
       .subscribe();
       
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(jobHistoryChannel);
     };
   }, [queryClient]);
 

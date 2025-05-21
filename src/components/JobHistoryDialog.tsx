@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Employee } from "@/types/supabase";
 import { useJobHistoryData } from "./JobHistory/hooks/useJobHistoryData";
 import { JobHistoryDialogManager } from "./JobHistory/components/JobHistoryDialogManager";
@@ -8,6 +8,7 @@ import { JobHistoryDialogContent } from "./JobHistory/components/JobHistoryDialo
 import AddJobHistoryDialog from "./JobHistory/components/AddJobHistoryDialog";
 import EditJobHistoryDialog from "./JobHistory/components/EditJobHistoryDialog";
 import DeleteJobHistoryDialog from "./JobHistory/components/DeleteJobHistoryDialog";
+import { updateAuditTrail } from "@/utils/auditTrail";
 
 interface JobHistoryDialogProps {
   employee: Employee | null;
@@ -17,6 +18,17 @@ interface JobHistoryDialogProps {
 
 const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProps) => {
   const { jobHistory, isLoading, jobs, departments } = useJobHistoryData(employee);
+  
+  // When dialog is opened, update employee status
+  useEffect(() => {
+    if (open && employee?.empno) {
+      updateAuditTrail('employee', employee.empno, 'empno', {
+        status: 'edited'
+      }).catch(error => {
+        console.error("Error updating employee audit trail on dialog open:", error);
+      });
+    }
+  }, [open, employee]);
 
   return (
     <JobHistoryDialogManager employee={employee} open={open}>
@@ -29,7 +41,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
       }) => (
         <JobHistoryActionHandlers
           employee={employee}
-          currentJobHistory={currentJobHistory} // Pass the currentJobHistory prop
+          currentJobHistory={currentJobHistory}
           setCurrentJobHistory={setCurrentJobHistory}
           setIsAddOpen={setIsAddOpen}
           setIsEditOpen={setIsEditOpen}
