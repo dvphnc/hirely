@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Define valid table names explicitly to avoid the type recursion issue
@@ -40,15 +39,19 @@ export const updateAuditTrail = async (
       const jobcode = parts[1];
       const effdate = parts[2];
       
-      const { error } = await supabase
-        .from(tableName)
-        .update(updateData)
-        .eq('empno', empno)
-        .eq('jobcode', jobcode)
-        .eq('effdate', effdate);
-        
-      if (error) {
-        console.error(`Error updating audit trail for ${tableName}:`, error);
+      try {
+        const { error } = await supabase
+          .from(tableName)
+          .update(updateData)
+          .eq('empno', empno)
+          .eq('jobcode', jobcode)
+          .eq('effdate', effdate);
+          
+        if (error) {
+          console.error(`Error updating audit trail for ${tableName}:`, error);
+        }
+      } catch (error) {
+        console.error(`Exception while updating audit trail for ${tableName}:`, error);
       }
       return;
     }

@@ -65,6 +65,7 @@ export const JobHistoryDialogContent: React.FC<JobHistoryDialogContentProps> = (
             <Button 
               disabled={true}
               className="opacity-50 cursor-not-allowed"
+              aria-disabled="true"
             > 
               <Plus className="mr-2 h-4 w-4" /> Add Job History
             </Button>

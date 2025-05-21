@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
@@ -125,6 +124,7 @@ export function EmployeeTable({
                       variant="outline"
                       size="sm"
                       onClick={() => onEditClick(employee)}
+                      aria-label="Edit employee"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -134,6 +134,8 @@ export function EmployeeTable({
                       size="sm"
                       disabled={true}
                       className="opacity-50 cursor-not-allowed"
+                      aria-label="Edit employee (disabled)"
+                      aria-disabled="true"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -143,6 +145,7 @@ export function EmployeeTable({
                     variant="outline"
                     size="sm"
                     onClick={() => onJobHistoryClick(employee)}
+                    aria-label="View job history"
                   >
                     <History className="h-4 w-4" />
                   </Button>
@@ -153,6 +156,7 @@ export function EmployeeTable({
                       size="sm"
                       className="text-blue-500 hover:text-blue-700"
                       onClick={() => onRestoreClick(employee)}
+                      aria-label="Restore employee"
                     >
                       <RefreshCcw className="h-4 w-4" />
                     </Button>
@@ -164,6 +168,7 @@ export function EmployeeTable({
                       size="sm"
                       className="text-red-500 hover:text-red-700"
                       onClick={() => onDeleteClick(employee)}
+                      aria-label="Delete employee"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -173,6 +178,8 @@ export function EmployeeTable({
                       size="sm"
                       disabled={true}
                       className="opacity-50 cursor-not-allowed text-red-500"
+                      aria-label="Delete employee (disabled)"
+                      aria-disabled="true"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

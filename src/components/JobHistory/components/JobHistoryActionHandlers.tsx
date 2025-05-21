@@ -45,8 +45,12 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
     deleteJobHistoryMutation 
   } = useJobHistoryMutations(employee?.empno);
 
+  const hasEditPermission = canEdit || isAdmin;
+  const hasDeletePermission = canDelete || isAdmin;
+  const hasAddPermission = canAdd || isAdmin;
+
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
-    if (!canEdit && !isAdmin) { 
+    if (!hasEditPermission) { 
       toast.error("You don't have permission to edit job history.");
       return; 
     }
@@ -55,7 +59,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
-    if (!canDelete && !isAdmin) { 
+    if (!hasDeletePermission) { 
       toast.error("You don't have permission to delete job history.");
       return;
     }
@@ -64,7 +68,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
-    if (!canAdd && !isAdmin) {
+    if (!hasAddPermission) {
       toast.error("You don't have permission to add job history.");
       return;
     }
@@ -76,7 +80,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
-    if (!canEdit && !isAdmin) {
+    if (!hasEditPermission) {
       toast.error("You don't have permission to update job history.");
       return;
     }
@@ -89,7 +93,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
   };
 
   const handleDeleteJobHistory = () => {
-    if (!canDelete && !isAdmin) {
+    if (!hasDeletePermission) {
       toast.error("You don't have permission to delete job history.");
       return;
     }
@@ -116,9 +120,9 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
         createJobHistoryMutation,
         updateJobHistoryMutation,
         deleteJobHistoryMutation,
-        canAdd: canAdd || isAdmin,
-        canEdit: canEdit || isAdmin,
-        canDelete: canDelete || isAdmin,
+        canAdd: hasAddPermission,
+        canEdit: hasEditPermission,
+        canDelete: hasDeletePermission,
       })}
     </>
   );
