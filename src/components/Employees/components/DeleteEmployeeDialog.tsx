@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -14,8 +15,8 @@ export const DeleteEmployeeDialog = ({
 }: DeleteEmployeeDialogProps) => {
   const { deleteEmployeeMutation } = useEmployeeMutations();
   // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
-  // Gamitin ang usePermission hook para sa 'employees' table.
-  const { canDelete } = usePermission('employees'); // Kukunin ang 'canDelete' property para sa 'employees' table
+  // Gamitin ang usePermission hook para sa 'employee' table.
+  const { canDelete } = usePermission('employee'); // Kukunin ang 'canDelete' property para sa 'employee' table
 
   const handleDeleteConfirm = () => {
     // --- BINAGO ANG PERMISSION CHECK DITO ---

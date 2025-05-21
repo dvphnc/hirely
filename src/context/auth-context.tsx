@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -340,6 +341,7 @@ export const usePermission = (tableName: string) => {
   if (profile?.role === 'user') {
     const restrictedTables = ['employee', 'jobhistory', 'job', 'department'];
     if (restrictedTables.includes(tableName)) {
+      console.log(`User with 'user' role denied permission for ${tableName} table`);
       return { canAdd: false, canEdit: false, canDelete: false };
     }
   }
