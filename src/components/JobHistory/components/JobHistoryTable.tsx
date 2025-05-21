@@ -31,11 +31,9 @@ const JobHistoryTable = ({
   onEditClick,
   onDeleteClick,
   removingKey,
-  canEdit = true,
-  canDelete = true
+  canEdit = false,
+  canDelete = false
 }: JobHistoryTableProps) => {
-  // Define shouldDisableActions using the new props
-  const shouldDisableActions = false; // We'll keep this for backward compatibility
   const { isAdmin } = useAuth();
   const { userEmails } = useUserManagement();
 
@@ -106,18 +104,37 @@ const JobHistoryTable = ({
                           variant="outline"
                           size="sm"
                           onClick={() => onEditClick(history)}
-                          disabled={shouldDisableActions}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
+                      {!canEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={true}
+                          className="opacity-50 cursor-not-allowed"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
                       {canDelete && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           onClick={() => onDeleteClick(history)}
-                          disabled={shouldDisableActions}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {!canDelete && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={true}
+                          className="opacity-50 cursor-not-allowed text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

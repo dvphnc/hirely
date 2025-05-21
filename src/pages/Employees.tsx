@@ -14,6 +14,7 @@ import { DeleteEmployeeDialog } from "@/components/Employees/components/DeleteEm
 import { EmployeeSearch } from "@/components/Employees/components/EmployeeSearch";
 import { EmployeeTable } from "@/components/Employees/components/EmployeeTable";
 import { usePermission, useAuth } from "@/context/auth-context";
+import { toast } from "sonner";
 
 const Employees = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -43,7 +44,7 @@ const Employees = () => {
   const handleEditClick = (employee: Employee) => {
     // Only allow editing if user has permission
     if (!canEdit && !isAdmin) {
-      console.warn("User does not have permission to edit employees.");
+      toast.error("You don't have permission to edit employees.");
       return;
     }
     setCurrentEmployee(employee);
@@ -53,7 +54,7 @@ const Employees = () => {
   const handleDeleteClick = (employee: Employee) => {
     // Only allow deletion if user has permission
     if (!canDelete && !isAdmin) {
-      console.warn("User does not have permission to delete employees.");
+      toast.error("You don't have permission to delete employees.");
       return;
     }
     setCurrentEmployee(employee);
@@ -68,7 +69,7 @@ const Employees = () => {
   const handleConfirmDelete = () => {
     // Final check before deletion
     if (!canDelete && !isAdmin) {
-      console.warn("User does not have permission to delete employees.");
+      toast.error("You don't have permission to delete employees.");
       return;
     }
     
@@ -85,7 +86,7 @@ const Employees = () => {
   const handleRestoreEmployee = (employee: Employee) => {
     // Only admins can restore
     if (!isAdmin) {
-      console.warn("Only admins can restore deleted employees.");
+      toast.error("Only admins can restore deleted employees.");
       return;
     }
     
@@ -94,6 +95,14 @@ const Employees = () => {
         refetch();
       }
     });
+  };
+
+  const handleAddClick = () => {
+    if (!canAdd && !isAdmin) {
+      toast.error("You don't have permission to add employees.");
+      return;
+    }
+    setIsAddOpen(true);
   };
 
   if (error) {
@@ -113,14 +122,21 @@ const Employees = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Employees</h1>
-          <Button
-            className={`instagram-gradient ${!hasAddPermission ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => hasAddPermission && setIsAddOpen(true)}
-            disabled={!hasAddPermission}
-            aria-disabled={!hasAddPermission}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
-          </Button>
+          {hasAddPermission ? (
+            <Button
+              className="instagram-gradient"
+              onClick={handleAddClick}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          ) : (
+            <Button
+              className="instagram-gradient opacity-50 cursor-not-allowed"
+              disabled={true}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
+          )}
         </div>
 
         <Card>

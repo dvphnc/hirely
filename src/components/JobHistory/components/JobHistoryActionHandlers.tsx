@@ -4,6 +4,7 @@ import { Employee } from "@/types/supabase";
 import { JobHistoryFormValues, JobHistoryWithDetails } from "../types/JobHistoryTypes";
 import { useJobHistoryMutations } from "../hooks/useJobHistoryMutations";
 import { usePermission, useAuth } from "@/context/auth-context";
+import { toast } from "sonner";
 
 interface JobHistoryActionHandlersProps {
   employee: Employee | null;
@@ -46,7 +47,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
 
   const handleEditClick = (jobHistory: JobHistoryWithDetails) => {
     if (!canEdit && !isAdmin) { 
-      console.warn("User does not have permission to edit job history.");
+      toast.error("You don't have permission to edit job history.");
       return; 
     }
     setCurrentJobHistory(jobHistory);
@@ -55,7 +56,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
 
   const handleDeleteClick = (jobHistory: JobHistoryWithDetails) => {
     if (!canDelete && !isAdmin) { 
-      console.warn("User does not have permission to delete job history.");
+      toast.error("You don't have permission to delete job history.");
       return;
     }
     setCurrentJobHistory(jobHistory);
@@ -64,7 +65,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
 
   const handleCreateJobHistory = (data: JobHistoryFormValues) => {
     if (!canAdd && !isAdmin) {
-      console.warn("User does not have permission to add job history.");
+      toast.error("You don't have permission to add job history.");
       return;
     }
     createJobHistoryMutation.mutate(data, {
@@ -76,7 +77,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
 
   const handleUpdateJobHistory = (data: JobHistoryFormValues) => {
     if (!canEdit && !isAdmin) {
-      console.warn("User does not have permission to update job history via form submission.");
+      toast.error("You don't have permission to update job history.");
       return;
     }
     updateJobHistoryMutation.mutate(data, {
@@ -89,7 +90,7 @@ export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> =
 
   const handleDeleteJobHistory = () => {
     if (!canDelete && !isAdmin) {
-      console.warn("User does not have permission to delete job history via confirmation.");
+      toast.error("You don't have permission to delete job history.");
       return;
     }
     

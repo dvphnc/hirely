@@ -120,12 +120,20 @@ export function EmployeeTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  {canEdit && (
+                  {canEdit ? (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onEditClick(employee)}
-                      className={!canEdit ? "opacity-50 cursor-not-allowed" : ""}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={true}
+                      className="opacity-50 cursor-not-allowed"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -150,12 +158,21 @@ export function EmployeeTable({
                     </Button>
                   )}
 
-                  {canDelete && (
+                  {canDelete ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      className={`text-red-500 hover:text-red-700 ${!canDelete ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className="text-red-500 hover:text-red-700"
                       onClick={() => onDeleteClick(employee)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={true}
+                      className="opacity-50 cursor-not-allowed text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
