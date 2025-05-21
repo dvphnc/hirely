@@ -7,6 +7,7 @@ import { usePermission } from "@/context/auth-context";
 
 interface JobHistoryActionHandlersProps {
   employee: Employee | null;
+  currentJobHistory: JobHistoryWithDetails | null; // Added this prop
   setCurrentJobHistory: (jobHistory: JobHistoryWithDetails | null) => void;
   setIsAddOpen: (open: boolean) => void;
   setIsEditOpen: (open: boolean) => void;
@@ -28,6 +29,7 @@ interface JobHistoryActionHandlersProps {
 
 export const JobHistoryActionHandlers: React.FC<JobHistoryActionHandlersProps> = ({
   employee,
+  currentJobHistory, // Added this prop
   setCurrentJobHistory,
   setIsAddOpen,
   setIsEditOpen,

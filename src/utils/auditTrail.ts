@@ -31,9 +31,12 @@ export const updateAuditTrail = async (
   // For composite keys in jobhistory table
   if (tableName === 'jobhistory' && primaryKeyField === 'combined_id' && typeof id === 'string') {
     // Parse the composite key format "empno-jobcode-effdate"
-    const [empno, jobcode, effdate] = id.split('-');
-    
-    if (empno && jobcode && effdate) {
+    const parts = id.split('-');
+    if (parts.length === 3) {
+      const empno = parts[0];
+      const jobcode = parts[1];
+      const effdate = parts[2];
+      
       const { error } = await supabase
         .from(tableName)
         .update(updateData)

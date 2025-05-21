@@ -29,6 +29,7 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
       }) => (
         <JobHistoryActionHandlers
           employee={employee}
+          currentJobHistory={currentJobHistory} // Pass the currentJobHistory prop
           setCurrentJobHistory={setCurrentJobHistory}
           setIsAddOpen={setIsAddOpen}
           setIsEditOpen={setIsEditOpen}
