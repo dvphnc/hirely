@@ -24,10 +24,9 @@ import { EmployeeFormValues, employeeSchema, EditEmployeeDialogProps } from "../
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
 import { createAuditTrail } from "@/utils/auditTrail";
 
-// --- MAHALAGANG PAGBABAGO DITO ---
-// Batay sa iyong EmployeeTable.tsx, ang useAuth ay ini-import mula sa "@/context/auth-context".
-// Siguraduhin na ang path na ito ay tama para sa iyong proyekto!
-import { useAuth } from "@/context/auth-context"; // <--- BINAGO ANG IMPORT PATH DITO
+// --- BINAGO ANG IMPORT DITO ---
+// Gagamitin natin ang usePermission hook mula sa iyong auth-context.
+import { usePermission } from "@/context/auth-context";
 
 export const EditEmployeeDialog = ({
   employee,
@@ -36,10 +35,9 @@ export const EditEmployeeDialog = ({
   onManageJobHistory
 }: EditEmployeeDialogProps) => {
   const { updateEmployeeMutation } = useEmployeeMutations();
-  // Siguraduhin na ang useAuth() ay nagre-return ng 'hasPermission' function.
-  // Kung ang iyong useAuth context ay nagbibigay lang ng `isAdmin` (tulad ng nakita sa EmployeeTable),
-  // maaaring kailangan mong i-derive ang `canEdit` mula sa `isAdmin` o magdagdag ng `hasPermission` function sa iyong auth-context.
-  const { hasPermission } = useAuth(); // Ipinapalagay na ang useAuth ay nagbibigay ng hasPermission function
+  // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
+  // Gamitin ang usePermission hook para sa 'employees' table.
+  const { canEdit } = usePermission('employees'); // Kukunin ang 'canEdit' property para sa 'employees' table
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -69,30 +67,13 @@ export const EditEmployeeDialog = ({
   }, [employee, form]);
 
   const onSubmit = (data: EmployeeFormValues) => {
-    // --- SIMULA: Permission check bago mag-submit ---
-    // Siguraduhin na ang 'hasPermission' function ay tama ang implementasyon at available mula sa iyong auth-context.
-    // Palitan ang 'employee:edit' ng aktwal na permission string para sa pag-edit ng mga empleyado sa iyong system.
-    try {
-      // I-check kung ang hasPermission ay isang function bago tawagin ito, upang maiwasan ang mga error
-      if (typeof hasPermission === 'function' && !hasPermission('employee:edit')) {
-        console.error("Permission Denied: Ang user ay walang pahintulot na mag-edit ng mga empleyado.");
-        // Opsyonal, maaari kang magpakita ng user-friendly na mensahe sa user dito (halimbawa, isang toast notification).
-        // Halimbawa: toast.error("Wala kang pahintulot na gawin ang aksyon na ito.");
-        onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
-        return; // Mahalaga: Itigil ang function kung walang pahintulot
-      } else if (typeof hasPermission !== 'function') {
-        // Ang kasong ito ay nagpapahiwatig na ang hasPermission ay hindi tama ang pagkakaloob ng useAuth
-        console.error("Ang permission check function na 'hasPermission' ay hindi available. Siguraduhin na ang iyong useAuth hook/context ay tama ang implementasyon.");
-        onOpenChange(false);
-        return;
-      }
-    } catch (error) {
-      console.error("Error sa panahon ng permission check:", error);
-      // Pangasiwaan ang mga hindi inaasahang error sa panahon ng permission check mismo
-      onOpenChange(false);
-      return;
+    // --- BINAGO ANG PERMISSION CHECK DITO ---
+    // Direkta nang gagamitin ang 'canEdit' na galing sa usePermission hook.
+    if (!canEdit) {
+      console.error("Permission Denied: Ang user ay walang pahintulot na mag-edit ng mga empleyado.");
+      onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
+      return; // Mahalaga: Itigil ang function kung walang pahintulot
     }
-    // --- TAPOS: Permission check ---
 
     updateEmployeeMutation.mutate(data, {
       onSuccess: () => {
@@ -109,12 +90,9 @@ export const EditEmployeeDialog = ({
   };
 
   const handleJobHistoryClick = async () => {
-    // Ang button na ito ay maaaring mangailangan din ng permission check kung ang 'manage_job_history' ay isang hiwalay na permission
-    // Halimbawa:
-    // if (typeof hasPermission === 'function' && !hasPermission('employee:manage_job_history')) {
-    //   console.error("Permission Denied: Ang user ay walang pahintulot na pamahalaan ang kasaysayan ng trabaho.");
-    //   return;
-    // }
+    // Kung may specific permission para sa job history, gamitin din ang usePermission
+    // Halimbawa: const { canViewJobHistory } = usePermission('job_history');
+    // if (!canViewJobHistory) { ... return; }
 
     // I-log ang access sa kasaysayan ng trabaho sa audit trail
     if (employee?.empno) {
@@ -138,11 +116,7 @@ export const EditEmployeeDialog = ({
     }
   };
 
-  // Tukuyin kung ang user ay may pahintulot na mag-edit ng mga empleyado
-  // Siguraduhin na ang iyong 'hasPermission' function ay nagre-return ng boolean.
-  // Magdagdag ng fallback (false) kung ang hasPermission ay hindi pa available o hindi isang function
-  const canEdit = typeof hasPermission === 'function' ? hasPermission('employee:edit') : false;
-  console.log("Ang user ay maaaring mag-edit ng empleyado:", canEdit); // Para sa debugging: I-check ito sa iyong browser console
+  console.log("User can edit employee (from usePermission):", canEdit); // Para sa debugging: I-check ito sa iyong browser console
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -204,7 +178,7 @@ export const EditEmployeeDialog = ({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    disabled={!canEdit} // <--- I-disable ang Select kung walang pahintulot sa pag-edit
+                    disabled={!canEdit} // I-disable ang Select kung walang pahintulot sa pag-edit
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -251,7 +225,7 @@ export const EditEmployeeDialog = ({
               name="sepdate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Petsa ng Paghihiwalay (opsyonal)</FormLabel>
+                  <FormLabel>Petsa ng Paghihiwalay (opsyonal)</Formabel>
                   <FormControl>
                     <Input
                       type="date"
