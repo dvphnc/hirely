@@ -15,7 +15,7 @@ export const updateAuditTrail = async (
   tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
-  userData: Record<string, any> = {} // Using Record<string, any> instead of generic object type
+  userData: Record<string, any> = {}
 ): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
@@ -28,7 +28,7 @@ export const updateAuditTrail = async (
   const updateData: Record<string, any> = {
     updated_by: userId,
     updated_at: timestamp,
-    ...userData // Safely spread userData if it exists
+    ...userData
   };
   
   // For composite keys in jobhistory table

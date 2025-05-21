@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
@@ -12,6 +13,8 @@ interface EmployeeTableProps {
   onDeleteClick: (employee: Employee) => void;
   onJobHistoryClick: (employee: Employee) => void;
   onRestoreClick?: (employee: Employee) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export function EmployeeTable({
@@ -21,6 +24,8 @@ export function EmployeeTable({
   onDeleteClick,
   onJobHistoryClick,
   onRestoreClick,
+  canEdit,
+  canDelete,
 }: EmployeeTableProps) {
   const { isAdmin } = useAuth();
   const { userEmails } = useUserManagement();
@@ -115,13 +120,15 @@ export function EmployeeTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEditClick(employee)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditClick(employee)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -139,14 +146,16 @@ export function EmployeeTable({
                       <RefreshCcw className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={() => onDeleteClick(employee)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => onDeleteClick(employee)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>

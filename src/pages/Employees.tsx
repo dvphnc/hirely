@@ -22,7 +22,7 @@ const Employees = () => {
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const { isAdmin } = useAuth();
-  const { canAdd } = usePermission('employee');
+  const { canAdd, canEdit, canDelete } = usePermission('employee');
 
   const { 
     employees,
@@ -41,11 +41,21 @@ const Employees = () => {
   const { deleteEmployeeMutation, restoreEmployeeMutation } = useEmployeeMutations();
 
   const handleEditClick = (employee: Employee) => {
+    // Only allow editing if user has permission
+    if (!canEdit && !isAdmin) {
+      console.warn("User does not have permission to edit employees.");
+      return;
+    }
     setCurrentEmployee(employee);
     setIsEditOpen(true);
   };
 
   const handleDeleteClick = (employee: Employee) => {
+    // Only allow deletion if user has permission
+    if (!canDelete && !isAdmin) {
+      console.warn("User does not have permission to delete employees.");
+      return;
+    }
     setCurrentEmployee(employee);
     setIsDeleteOpen(true);
   };
@@ -56,6 +66,12 @@ const Employees = () => {
   };
 
   const handleConfirmDelete = () => {
+    // Final check before deletion
+    if (!canDelete && !isAdmin) {
+      console.warn("User does not have permission to delete employees.");
+      return;
+    }
+    
     if (currentEmployee) {
       deleteEmployeeMutation.mutate(currentEmployee.empno, {
         onSuccess: () => {
@@ -67,6 +83,12 @@ const Employees = () => {
   };
   
   const handleRestoreEmployee = (employee: Employee) => {
+    // Only admins can restore
+    if (!isAdmin) {
+      console.warn("Only admins can restore deleted employees.");
+      return;
+    }
+    
     restoreEmployeeMutation.mutate(employee.empno, {
       onSuccess: () => {
         refetch();
@@ -92,7 +114,7 @@ const Employees = () => {
           <Button
             className="instagram-gradient"
             onClick={() => setIsAddOpen(true)}
-            disabled={!canAdd}
+            disabled={!canAdd && !isAdmin}
           >
             <Plus className="mr-2 h-4 w-4" /> Add Employee
           </Button>
@@ -119,6 +141,8 @@ const Employees = () => {
               onDeleteClick={handleDeleteClick}
               onJobHistoryClick={handleJobHistoryClick}
               onRestoreClick={isAdmin ? handleRestoreEmployee : undefined}
+              canEdit={canEdit || isAdmin}
+              canDelete={canDelete || isAdmin}
             />
           </CardContent>
         </Card>
