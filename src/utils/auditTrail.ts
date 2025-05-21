@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/auth-context";
 import { PostgrestError } from "@supabase/supabase-js";
 
 // Define a ValidTableName type to avoid "Type instantiation is excessively deep"
@@ -16,8 +15,17 @@ type ValidTableName =
   | "sales"
   | "pricehist"
   | "product"
-  | "salesdetail"
-  | "audit_trail";  // Added audit_trail as a valid table name
+  | "salesdetail";
+
+// Define an interface for audit trail data
+interface AuditTrailRecord {
+  table_name: string;
+  record_id: string;
+  action: 'INSERT' | 'UPDATE' | 'DELETE';
+  old_data: any | null;
+  new_data: any | null;
+  created_by: string;
+}
 
 /**
  * Create an audit trail record
@@ -42,16 +50,18 @@ export const createAuditTrail = async <T extends Record<string, any>>(
     }
 
     // Create the audit trail record
+    const auditTrailData: AuditTrailRecord = {
+      table_name: tableName,
+      record_id: JSON.stringify(extractRecordId(data, tableName)),
+      action: action,
+      old_data: null, // We don't track old data in this simplified version
+      new_data: action === 'DELETE' ? null : data,
+      created_by: userId
+    };
+
     const { error } = await supabase
       .from('audit_trail')
-      .insert({
-        table_name: tableName,
-        record_id: JSON.stringify(extractRecordId(data, tableName)),
-        action: action,
-        old_data: null, // We don't track old data in this simplified version
-        new_data: action === 'DELETE' ? null : data,
-        created_by: userId
-      });
+      .insert(auditTrailData);
 
     if (error) {
       console.error('Error creating audit trail:', error);
@@ -128,8 +138,6 @@ function extractRecordId<T extends Record<string, any>>(data: T, tableName: Vali
         invno: data.invno,
         prodcode: data.prodcode
       };
-    case 'audit_trail':
-      return { id: data.id };
     default:
       // Return the full data for unknown tables - this should not happen with our type definition
       return data;
