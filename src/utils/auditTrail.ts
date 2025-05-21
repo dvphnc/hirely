@@ -1,5 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
+
+// Define valid table names explicitly to avoid circular type inference
+type ValidTableNames = 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions';
 
 /**
  * Updates a record with audit trail information
@@ -9,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
  * @param userData Optional additional data to update along with audit information
  */
 export const updateAuditTrail = async (
-  tableName: 'employee' | 'job' | 'department' | 'jobhistory' | 'profiles' | 'user_permissions', 
+  tableName: ValidTableNames, 
   id: string | number, 
   primaryKeyField: string,
   userData?: Record<string, any>
