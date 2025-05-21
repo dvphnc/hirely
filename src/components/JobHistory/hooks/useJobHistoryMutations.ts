@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,11 +34,16 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         updated_at: new Date().toISOString()
       };
       
-      // Also update the associated employee record to show activity
+      // Also update the associated employee record to show activity BEFORE adding the job history
       if (newJobHistory.empno) {
-        await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
-          status: 'edited'
-        });
+        try {
+          await updateAuditTrail('employee', newJobHistory.empno, 'empno', {
+            status: 'edited'
+          });
+        } catch (error) {
+          console.error("Error updating employee audit trail:", error);
+          // Continue with the job history creation even if the employee update fails
+        }
       }
       
       const { data, error } = await supabase

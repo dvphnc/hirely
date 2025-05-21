@@ -52,12 +52,16 @@ export const updateAuditTrail = async (
   }
   
   // Standard update for non-composite keys
-  const { error } = await supabase
-    .from(tableName)
-    .update(updateData)
-    .eq(primaryKeyField, id);
-    
-  if (error) {
-    console.error(`Error updating audit trail for ${tableName}:`, error);
+  try {
+    const { error } = await supabase
+      .from(tableName)
+      .update(updateData)
+      .eq(primaryKeyField, id);
+      
+    if (error) {
+      console.error(`Error updating audit trail for ${tableName}:`, error);
+    }
+  } catch (error) {
+    console.error(`Exception while updating audit trail for ${tableName}:`, error);
   }
 };
