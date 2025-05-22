@@ -35,7 +35,7 @@ export const useEmployeeMutations = () => {
       const { data: existingEmployee } = await supabase
         .from('employee')
         .select('empno')
-        .eq('empno', newEmployee.empno)
+        .eq('empno' as any, newEmployee.empno)
         .single();
         
       if (existingEmployee) {
@@ -59,7 +59,7 @@ export const useEmployeeMutations = () => {
       // Insert the new employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .insert(insertData)
+        .insert(insertData as any)
         .select();
 
       if (error) throw error;
@@ -113,8 +113,8 @@ export const useEmployeeMutations = () => {
       // Update the employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData)
-        .eq('empno', employee.empno as any)
+        .update(updateData as any)
+        .eq('empno' as any, employee.empno)
         .select();
 
       if (error) throw error;
@@ -152,7 +152,7 @@ export const useEmployeeMutations = () => {
       const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
         .select('*')
-        .eq('empno', employeeId as any)
+        .eq('empno' as any, employeeId)
         .single();
       
       if (fetchError) throw fetchError;
@@ -166,8 +166,8 @@ export const useEmployeeMutations = () => {
       // Then update it to mark as deleted with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData)
-        .eq('empno', employeeId as any)
+        .update(updateData as any)
+        .eq('empno' as any, employeeId)
         .select();
 
       if (error) throw error;
@@ -210,8 +210,8 @@ export const useEmployeeMutations = () => {
       // Update with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData)
-        .eq('empno', employeeId as any)
+        .update(updateData as any)
+        .eq('empno' as any, employeeId)
         .select();
 
       if (error) throw error;

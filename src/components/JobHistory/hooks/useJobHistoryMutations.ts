@@ -31,8 +31,8 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           // Update employee status and create audit trail
           const { data: employeeData } = await supabase
             .from('employee')
-            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-            .eq('empno', newJobHistory.empno)
+            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
+            .eq('empno' as any, newJobHistory.empno)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -60,7 +60,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       
       const { data, error } = await supabase
         .from("jobhistory")
-        .insert(jobHistoryToInsert)
+        .insert(jobHistoryToInsert as any)
         .select();
       
       if (error) throw new Error(error.message);
@@ -100,8 +100,8 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         
         const { data: employeeData } = await supabase
           .from('employee')
-          .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-          .eq('empno', jobHistory.empno)
+          .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
+          .eq('empno' as any, jobHistory.empno)
           .select();
           
         if (employeeData && employeeData[0]) {
@@ -122,10 +122,10 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           status: 'edited',
           updated_by: userId,
           updated_at: new Date().toISOString()
-        })
-        .eq("empno", jobHistory.empno)
-        .eq("jobcode", jobHistory.jobcode)
-        .eq("effdate", jobHistory.effdate)
+        } as any)
+        .eq("empno" as any, jobHistory.empno)
+        .eq("jobcode" as any, jobHistory.jobcode)
+        .eq("effdate" as any, jobHistory.effdate)
         .select();
       
       if (error) throw new Error(error.message);
@@ -167,8 +167,8 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           
           const { data: employeeData } = await supabase
             .from('employee')
-            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-            .eq('empno', jobHistory.empno)
+            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
+            .eq('empno' as any, jobHistory.empno)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -190,9 +190,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       const { error } = await supabase
         .from("jobhistory")
         .delete()
-        .eq("empno", jobHistory.empno)
-        .eq("jobcode", jobHistory.jobcode)
-        .eq("effdate", jobHistory.effdate);
+        .eq("empno" as any, jobHistory.empno)
+        .eq("jobcode" as any, jobHistory.jobcode)
+        .eq("effdate" as any, jobHistory.effdate);
       
       if (error) {
         console.error("Delete error:", error);

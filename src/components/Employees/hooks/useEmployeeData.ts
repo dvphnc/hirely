@@ -21,8 +21,8 @@ export const useEmployeeData = () => {
       let query = supabase.from("employee").select("*");
       
       if (!showDeleted) {
-        // If not showing deleted, exclude them
-        query = query.neq("status", "deleted");
+        // If not showing deleted, exclude them - using 'eq' with explicit type casting
+        query = query.neq("status" as any, "deleted");
       }
       
       if (searchTerm) {

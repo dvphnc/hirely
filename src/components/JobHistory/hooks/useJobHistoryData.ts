@@ -21,11 +21,11 @@ export const useJobHistoryData = (employee: Employee | null) => {
             deptname
           )
         `)
-        .eq("empno", employee.empno)
+        .eq("empno" as any, employee.empno)
         .order("effdate", { ascending: false });
       
       if (error) throw new Error(error.message);
-      return data as JobHistoryWithDetails[];
+      return data as unknown as JobHistoryWithDetails[];
     },
     enabled: !!employee,
   });
