@@ -337,7 +337,7 @@ export const usePermission = (tableName: string) => {
     return { canAdd: true, canEdit: true, canDelete: true };
   }
   
-  // Strictly enforce restrictions for 'user' role on specified tables
+  // Strictly enforce restrictions for 'user' role on specified restricted tables
   // regardless of checkbox settings in permissions
   if (profile?.role === 'user') {
     const restrictedTables = ['employee', 'jobhistory', 'job', 'department'];

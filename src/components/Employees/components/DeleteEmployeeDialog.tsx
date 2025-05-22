@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { DeleteEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
-// --- BINAGO ANG IMPORT DITO ---
-// Gagamitin natin ang usePermission hook mula sa iyong auth-context.
-import { usePermission } from "@/context/auth-context"; // Siguraduhin na ang path na ito ay tama
+import { usePermission } from "@/context/auth-context";
 
 export const DeleteEmployeeDialog = ({
   employee,
@@ -14,29 +12,24 @@ export const DeleteEmployeeDialog = ({
   onOpenChange,
 }: DeleteEmployeeDialogProps) => {
   const { deleteEmployeeMutation } = useEmployeeMutations();
-  // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
-  // Gamitin ang usePermission hook para sa 'employee' table.
-  const { canDelete } = usePermission('employee'); // Kukunin ang 'canDelete' property para sa 'employee' table
+  // Get permissions for the 'employee' table
+  const { canDelete } = usePermission('employee');
 
   const handleDeleteConfirm = () => {
-    // --- BINAGO ANG PERMISSION CHECK DITO ---
-    // Direkta nang gagamitin ang 'canDelete' na galing sa usePermission hook.
+    // Check if user has permission to delete employees
     if (!canDelete) {
-      console.error("Permission Denied: Ang user ay walang pahintulot na mag-delete ng mga empleyado.");
-      // Opsyonal, maaari kang magpakita ng user-friendly na mensahe sa user dito.
-      onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
-      return; // Mahalaga: Itigil ang function kung walang pahintulot
+      console.error("Permission Denied: User does not have permission to delete employees.");
+      onOpenChange(false); // Close dialog since action is not permitted
+      return;
     }
 
     if (employee?.empno) {
       deleteEmployeeMutation.mutate(employee.empno, {
         onSuccess: () => {
           onOpenChange(false);
-          // Opsyonal, magpakita ng mensahe ng tagumpay sa user
         },
         onError: (error) => {
-          console.error("Nabigo na i-delete ang empleyado:", error);
-          // Maaari kang magpakita ng mas user-friendly na mensahe ng error dito.
+          console.error("Failed to delete employee:", error);
         }
       });
     }
@@ -46,10 +39,10 @@ export const DeleteEmployeeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Kumpirmahin ang Pag-delete</DialogTitle>
+          <DialogTitle>Confirm Deletion</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          Sigurado ka bang gusto mong i-delete ang empleyadong ito? Ang aksyon na ito ay hindi na mababawi.
+          Are you sure you want to delete this employee? This action cannot be undone.
           <br />
           <span className="font-semibold">{employee?.lastname}, {employee?.firstname} ({employee?.empno})</span>
         </div>
@@ -59,15 +52,15 @@ export const DeleteEmployeeDialog = ({
             onClick={() => onOpenChange(false)}
             disabled={deleteEmployeeMutation.isPending}
           >
-            Kanselahin
+            Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={handleDeleteConfirm}
-            disabled={deleteEmployeeMutation.isPending || !canDelete} // I-disable kung walang pahintulot
+            disabled={deleteEmployeeMutation.isPending || !canDelete}
           >
             {deleteEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            I-delete
+            Delete
           </Button>
         </DialogFooter>
       </DialogContent>
