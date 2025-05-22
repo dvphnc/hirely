@@ -35,7 +35,7 @@ export const useEmployeeMutations = () => {
       const { data: existingEmployee } = await supabase
         .from('employee')
         .select('empno')
-        .eq('empno' as any, newEmployee.empno)
+        .eq('empno', newEmployee.empno as any)
         .single();
         
       if (existingEmployee) {
@@ -114,7 +114,7 @@ export const useEmployeeMutations = () => {
       const { data, error } = await supabase
         .from('employee')
         .update(updateData as any)
-        .eq('empno' as any, employee.empno)
+        .eq('empno', employee.empno as any)
         .select();
 
       if (error) throw error;
@@ -152,7 +152,7 @@ export const useEmployeeMutations = () => {
       const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
         .select('*')
-        .eq('empno' as any, employeeId)
+        .eq('empno', employeeId as any)
         .single();
       
       if (fetchError) throw fetchError;
@@ -167,7 +167,7 @@ export const useEmployeeMutations = () => {
       const { data, error } = await supabase
         .from('employee')
         .update(updateData as any)
-        .eq('empno' as any, employeeId)
+        .eq('empno', employeeId as any)
         .select();
 
       if (error) throw error;
@@ -211,7 +211,7 @@ export const useEmployeeMutations = () => {
       const { data, error } = await supabase
         .from('employee')
         .update(updateData as any)
-        .eq('empno' as any, employeeId)
+        .eq('empno', employeeId as any)
         .select();
 
       if (error) throw error;

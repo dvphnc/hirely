@@ -32,7 +32,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           const { data: employeeData } = await supabase
             .from('employee')
             .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
-            .eq('empno' as any, newJobHistory.empno)
+            .eq('empno', newJobHistory.empno as any)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -101,7 +101,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         const { data: employeeData } = await supabase
           .from('employee')
           .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
-          .eq('empno' as any, jobHistory.empno)
+          .eq('empno', jobHistory.empno as any)
           .select();
           
         if (employeeData && employeeData[0]) {
@@ -123,9 +123,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           updated_by: userId,
           updated_at: new Date().toISOString()
         } as any)
-        .eq("empno" as any, jobHistory.empno)
-        .eq("jobcode" as any, jobHistory.jobcode)
-        .eq("effdate" as any, jobHistory.effdate)
+        .eq("empno", jobHistory.empno as any)
+        .eq("jobcode", jobHistory.jobcode as any)
+        .eq("effdate", jobHistory.effdate as any)
         .select();
       
       if (error) throw new Error(error.message);
@@ -168,7 +168,7 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           const { data: employeeData } = await supabase
             .from('employee')
             .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() } as any)
-            .eq('empno' as any, jobHistory.empno)
+            .eq('empno', jobHistory.empno as any)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -190,9 +190,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       const { error } = await supabase
         .from("jobhistory")
         .delete()
-        .eq("empno" as any, jobHistory.empno)
-        .eq("jobcode" as any, jobHistory.jobcode)
-        .eq("effdate" as any, jobHistory.effdate);
+        .eq("empno", jobHistory.empno as any)
+        .eq("jobcode", jobHistory.jobcode as any)
+        .eq("effdate", jobHistory.effdate as any);
       
       if (error) {
         console.error("Delete error:", error);

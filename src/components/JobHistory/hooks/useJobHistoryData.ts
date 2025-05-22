@@ -21,7 +21,7 @@ export const useJobHistoryData = (employee: Employee | null) => {
             deptname
           )
         `)
-        .eq("empno" as any, employee.empno)
+        .eq("empno", employee.empno as any)
         .order("effdate", { ascending: false });
       
       if (error) throw new Error(error.message);
@@ -38,7 +38,8 @@ export const useJobHistoryData = (employee: Employee | null) => {
         .select("*");
       
       if (error) throw new Error(error.message);
-      return data;
+      // Fixed type casting to ensure compatibility with our Job type
+      return data as unknown as Job[];
     },
   });
 
@@ -50,7 +51,8 @@ export const useJobHistoryData = (employee: Employee | null) => {
         .select("*");
       
       if (error) throw new Error(error.message);
-      return data;
+      // Fixed type casting
+      return data as unknown as Department[];
     },
   });
 
