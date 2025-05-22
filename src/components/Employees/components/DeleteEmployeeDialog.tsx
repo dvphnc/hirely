@@ -4,36 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { DeleteEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
-import { usePermission } from "@/context/auth-context";
+import { usePermission, useAuth } from "@/context/auth-context";
 
 export const DeleteEmployeeDialog = ({
   employee,
   open,
   onOpenChange,
+  onConfirmDelete,
+  isDeleting,
 }: DeleteEmployeeDialogProps) => {
-  const { deleteEmployeeMutation } = useEmployeeMutations();
-  // Get permissions for the 'employee' table
   const { canDelete } = usePermission('employee');
-
-  const handleDeleteConfirm = () => {
-    // Check if user has permission to delete employees
-    if (!canDelete) {
-      console.error("Permission Denied: User does not have permission to delete employees.");
-      onOpenChange(false); // Close dialog since action is not permitted
-      return;
-    }
-
-    if (employee?.empno) {
-      deleteEmployeeMutation.mutate(employee.empno, {
-        onSuccess: () => {
-          onOpenChange(false);
-        },
-        onError: (error) => {
-          console.error("Failed to delete employee:", error);
-        }
-      });
-    }
-  };
+  const { isAdmin } = useAuth();
+  
+  // User can delete only if they have permission or are admin
+  const hasDeletePermission = canDelete || isAdmin;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,16 +34,16 @@ export const DeleteEmployeeDialog = ({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={deleteEmployeeMutation.isPending}
+            disabled={isDeleting}
           >
             Cancel
           </Button>
           <Button
             variant="destructive"
-            onClick={handleDeleteConfirm}
-            disabled={deleteEmployeeMutation.isPending || !canDelete}
+            onClick={onConfirmDelete}
+            disabled={isDeleting || !hasDeletePermission}
           >
-            {deleteEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
           </Button>
         </DialogFooter>

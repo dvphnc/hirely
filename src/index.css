@@ -142,7 +142,7 @@
   /* Ito ang mas specific na target para sa Edit at Delete buttons */
   button[variant="outline"][disabled],
   button.text-destructive[disabled] {
-    opacity: 0.5 !important; /* Siguraduhin na ito ang mag-apply */
+    opacity: 0.5 !important;
     cursor: not-allowed !important;
     /* Optional: i-override ang background/text/border color para mas maging dim */
     background-color: transparent !important; 

@@ -331,29 +331,30 @@ export const useAuth = () => {
 export const usePermission = (tableName: string) => {
   const { permissions, isAdmin, profile } = useAuth();
   
-  // Admins have all permissions
+  // Admins have all permissions regardless of checkbox settings
   if (isAdmin) {
     return { canAdd: true, canEdit: true, canDelete: true };
   }
   
-  // Strictly enforce restrictions for 'user' role on specified restricted tables
-  // regardless of checkbox settings in permissions
-  if (profile?.role === 'user') {
-    const restrictedTables = ['employee', 'jobhistory', 'job', 'department'];
-    if (restrictedTables.includes(tableName.toLowerCase())) {
-      console.log(`User with 'user' role denied permission for ${tableName} table`);
-      return { canAdd: false, canEdit: false, canDelete: false };
-    }
-  }
-  
-  // For other tables or other user roles, check specific permissions
+  // For regular users, check their specific permissions based on checkbox settings
   const tablePermissions = permissions.find(p => 
     p.table_name.toLowerCase() === tableName.toLowerCase()
   );
   
+  // If 'user' role, strictly enforce permissions based on checkbox settings
+  if (profile?.role === 'user') {
+    // If no permissions found or permissions are unchecked, deny all actions
+    return {
+      canAdd: tablePermissions?.can_add || false,
+      canEdit: tablePermissions?.can_edit || false,
+      canDelete: tablePermissions?.can_delete || false
+    };
+  }
+  
+  // Default fallback - deny all if no matching permissions found
   return {
-    canAdd: tablePermissions?.can_add || false,
-    canEdit: tablePermissions?.can_edit || false,
-    canDelete: tablePermissions?.can_delete || false
+    canAdd: false,
+    canEdit: false,
+    canDelete: false
   };
 };

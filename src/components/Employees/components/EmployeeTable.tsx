@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, History, RefreshCcw } from "lucide-react";
@@ -120,28 +119,18 @@ export function EmployeeTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
-                  {canEdit && employee.status !== 'deleted' ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditClick(employee)}
-                      aria-label="Edit employee"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      className="opacity-50 cursor-not-allowed"
-                      aria-label="Edit employee (disabled)"
-                      aria-disabled="true"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
+                  {/* Edit button - disabled if no permission or deleted */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => canEdit && employee.status !== 'deleted' && onEditClick(employee)}
+                    disabled={!canEdit || employee.status === 'deleted'}
+                    aria-label={canEdit ? "Edit employee" : "Edit employee (disabled)"}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
 
+                  {/* Job History button - always available */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -151,7 +140,8 @@ export function EmployeeTable({
                     <History className="h-4 w-4" />
                   </Button>
 
-                  {isAdmin && employee.status === 'deleted' && onRestoreClick ? (
+                  {/* Restore button - admin only */}
+                  {isAdmin && employee.status === 'deleted' && onRestoreClick && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -161,30 +151,19 @@ export function EmployeeTable({
                     >
                       <RefreshCcw className="h-4 w-4" />
                     </Button>
-                  ) : null}
-
-                  {canDelete && employee.status !== 'deleted' ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => onDeleteClick(employee)}
-                      aria-label="Delete employee"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      className="opacity-50 cursor-not-allowed text-red-500"
-                      aria-label="Delete employee (disabled)"
-                      aria-disabled="true"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   )}
+
+                  {/* Delete button - disabled if no permission or already deleted */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => canDelete && employee.status !== 'deleted' && onDeleteClick(employee)}
+                    disabled={!canDelete || employee.status === 'deleted'}
+                    aria-label={canDelete ? "Delete employee" : "Delete employee (disabled)"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>

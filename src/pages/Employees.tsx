@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Employee } from "@/types/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -24,7 +25,7 @@ const Employees = () => {
   const { isAdmin } = useAuth();
   const { canAdd, canEdit, canDelete } = usePermission('employee');
 
-  // Para sa debugging: I-check ang values na ito sa browser console
+  // Debug logs
   console.log("Permissions in Employees.tsx (from usePermission):", { canAdd, canEdit, canDelete });
   console.log("isAdmin:", isAdmin);
 
@@ -70,7 +71,7 @@ const Employees = () => {
   };
 
   const handleConfirmDelete = () => {
-    // Final check before deletion (redundant if handleDeleteClick already checks, but good for safety)
+    // Final check before deletion
     if (!canDelete && !isAdmin) {
       toast.error("You don't have permission to delete employees.");
       return;
@@ -180,6 +181,7 @@ const Employees = () => {
         </Card>
       </div>
 
+      {/* Only show AddEmployeeDialog if user has permission */}
       {hasAddPermission && (
         <AddEmployeeDialog
           open={isAddOpen}
@@ -190,32 +192,32 @@ const Employees = () => {
 
       {/* Conditional rendering for EditEmployeeDialog based on permission */}
       {(canEdit || isAdmin) && (
-            <EditEmployeeDialog
-              employee={currentEmployee}
-              open={isEditOpen}
-              onOpenChange={setIsEditOpen}
-              onManageJobHistory={handleJobHistoryClick}
-            />
-          )}
+        <EditEmployeeDialog
+          employee={currentEmployee}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          onManageJobHistory={handleJobHistoryClick}
+        />
+      )}
 
-          {/* Conditional rendering for DeleteEmployeeDialog based on permission */}
-          {(canDelete || isAdmin) && (
-            <DeleteEmployeeDialog
-              employee={currentEmployee}
-              open={isDeleteOpen}
-              onOpenChange={setIsDeleteOpen}
-              onConfirmDelete={handleConfirmDelete}
-              isDeleting={deleteEmployeeMutation.isPending}
-            />
-          )}
+      {/* Conditional rendering for DeleteEmployeeDialog based on permission */}
+      {(canDelete || isAdmin) && (
+        <DeleteEmployeeDialog
+          employee={currentEmployee}
+          open={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          onConfirmDelete={handleConfirmDelete}
+          isDeleting={deleteEmployeeMutation.isPending}
+        />
+      )}
 
-          <JobHistoryDialog
-            employee={currentEmployee}
-            open={isJobHistoryOpen}
-            onOpenChange={setIsJobHistoryOpen}
-          />
-        </DashboardLayout>
-      );
-    };
+      <JobHistoryDialog
+        employee={currentEmployee}
+        open={isJobHistoryOpen}
+        onOpenChange={setIsJobHistoryOpen}
+      />
+    </DashboardLayout>
+  );
+};
 
-    export default Employees;
+export default Employees;
