@@ -31,8 +31,12 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           // Update employee status and create audit trail
           const { data: employeeData } = await supabase
             .from('employee')
-            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-            .eq('empno', newJobHistory.empno)
+            .update({ 
+              status: 'edited', 
+              updated_by: userId, 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('empno', newJobHistory.empno as string)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -47,20 +51,18 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         }
       }
       
-      const jobHistoryToInsert = {
-        empno: newJobHistory.empno,
-        jobcode: newJobHistory.jobcode,
-        deptcode: newJobHistory.deptcode,
-        effdate: newJobHistory.effdate,
-        salary: newJobHistory.salary,
-        status: 'added',
-        updated_by: userId,
-        updated_at: new Date().toISOString()
-      };
-      
       const { data, error } = await supabase
         .from("jobhistory")
-        .insert(jobHistoryToInsert)
+        .insert({
+          empno: newJobHistory.empno,
+          jobcode: newJobHistory.jobcode,
+          deptcode: newJobHistory.deptcode,
+          effdate: newJobHistory.effdate,
+          salary: newJobHistory.salary,
+          status: 'added',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .select();
       
       if (error) throw new Error(error.message);
@@ -100,8 +102,12 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
         
         const { data: employeeData } = await supabase
           .from('employee')
-          .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-          .eq('empno', jobHistory.empno)
+          .update({ 
+            status: 'edited', 
+            updated_by: userId, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('empno', jobHistory.empno as string)
           .select();
           
         if (employeeData && employeeData[0]) {
@@ -123,9 +129,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           updated_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq("empno", jobHistory.empno)
-        .eq("jobcode", jobHistory.jobcode)
-        .eq("effdate", jobHistory.effdate)
+        .eq("empno", jobHistory.empno as string)
+        .eq("jobcode", jobHistory.jobcode as string)
+        .eq("effdate", jobHistory.effdate as string)
         .select();
       
       if (error) throw new Error(error.message);
@@ -167,8 +173,12 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
           
           const { data: employeeData } = await supabase
             .from('employee')
-            .update({ status: 'edited', updated_by: userId, updated_at: new Date().toISOString() })
-            .eq('empno', jobHistory.empno)
+            .update({ 
+              status: 'edited', 
+              updated_by: userId, 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('empno', jobHistory.empno as string)
             .select();
             
           if (employeeData && employeeData[0]) {
@@ -190,9 +200,9 @@ export const useJobHistoryMutations = (employeeEmpno: string | null | undefined)
       const { error } = await supabase
         .from("jobhistory")
         .delete()
-        .eq("empno", jobHistory.empno)
-        .eq("jobcode", jobHistory.jobcode)
-        .eq("effdate", jobHistory.effdate);
+        .eq("empno", jobHistory.empno as string)
+        .eq("jobcode", jobHistory.jobcode as string)
+        .eq("effdate", jobHistory.effdate as string);
       
       if (error) {
         console.error("Delete error:", error);

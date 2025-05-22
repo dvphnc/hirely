@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { EmployeeFormValues } from "../types/EmployeeTypes";
 import { createAuditTrail } from "@/utils/auditTrail";
 import { usePermission, useAuth } from "@/context/auth-context";
+import { Database } from "@/integrations/supabase/types";
 
 export const useEmployeeMutations = () => {
   const queryClient = useQueryClient();
@@ -35,7 +36,7 @@ export const useEmployeeMutations = () => {
       const { data: existingEmployee } = await supabase
         .from('employee')
         .select('empno')
-        .eq('empno', newEmployee.empno)
+        .eq('empno', newEmployee.empno as string)
         .single();
         
       if (existingEmployee) {
@@ -44,21 +45,19 @@ export const useEmployeeMutations = () => {
       
       const { data, error } = await supabase
         .from('employee')
-        .insert([
-          {
-            empno: newEmployee.empno,
-            firstname: newEmployee.firstname,
-            lastname: newEmployee.lastname,
-            gender: newEmployee.gender,
-            birthdate: newEmployee.birthdate,
-            hiredate: newEmployee.hiredate,
-            sepdate: newEmployee.sepdate,
-            status: 'added',
-            stamp: new Date().toISOString(),
-            updated_by: userId,
-            updated_at: new Date().toISOString()
-          }
-        ])
+        .insert({
+          empno: newEmployee.empno,
+          firstname: newEmployee.firstname,
+          lastname: newEmployee.lastname,
+          gender: newEmployee.gender,
+          birthdate: newEmployee.birthdate,
+          hiredate: newEmployee.hiredate,
+          sepdate: newEmployee.sepdate,
+          status: 'added',
+          stamp: new Date().toISOString(),
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
         .select();
 
       if (error) throw error;
@@ -110,7 +109,7 @@ export const useEmployeeMutations = () => {
           updated_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('empno', employee.empno)
+        .eq('empno', employee.empno as string)
         .select();
 
       if (error) throw error;
@@ -148,7 +147,7 @@ export const useEmployeeMutations = () => {
       const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
         .select('*')
-        .eq('empno', employeeId)
+        .eq('empno', employeeId as string)
         .single();
       
       if (fetchError) throw fetchError;
@@ -161,7 +160,7 @@ export const useEmployeeMutations = () => {
           updated_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('empno', employeeId)
+        .eq('empno', employeeId as string)
         .select();
 
       if (error) throw error;
@@ -202,7 +201,7 @@ export const useEmployeeMutations = () => {
           updated_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('empno', employeeId)
+        .eq('empno', employeeId as string)
         .select();
 
       if (error) throw error;
