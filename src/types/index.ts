@@ -1,3 +1,4 @@
+
 export interface Employee {
   empNo: string;
   firstName: string;
@@ -46,16 +47,3 @@ export interface User {
   name?: string;
   role: 'admin' | 'user' | 'blocked';
 }
-
-// Add any missing types here for compatibility
-export type UserPermissionWithId = {
-  id: string;
-  user_id: string;
-  table_name: string;
-  can_add: boolean;
-  can_edit: boolean;
-  can_delete: boolean;
-  created_at: string;
-  updated_at: string;
-  updated_by: string | null;
-};

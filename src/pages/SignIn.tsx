@@ -12,24 +12,6 @@ import { APP_VERSION } from "@/lib/version";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
-// Helper function to clean up auth state in localStorage
-const cleanupAuthState = () => {
-  // Remove standard auth tokens
-  localStorage.removeItem('supabase.auth.token');
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-};
-
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,31 +26,9 @@ const SignIn = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    try {
-      console.log("Login attempt for user:", email);
-      
-      // Clean up auth state before attempting to log in
-      cleanupAuthState();
-      
-      // Try to sign out globally first to clear any existing sessions
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-        console.log("Global sign out successful");
-      } catch (err) {
-        console.log('Global sign out failed, continuing with login');
-      }
-      
-      const success = await login(email, password);
-      if (success) {
-        console.log("Login successful, navigating to dashboard");
-        navigate("/dashboard");
-      } else {
-        console.log("Login failed");
-      }
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "An unexpected error occurred during login");
+    const success = await login(email, password);
+    if (success) {
+      navigate("/dashboard");
     }
   };
 

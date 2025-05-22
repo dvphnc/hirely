@@ -1,14 +1,12 @@
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { UserRole } from '@/context/auth-context';
-import { UserPermission } from '@/types/UserManagement';
 
 export const useUserManagement = () => {
   const queryClient = useQueryClient();
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
 
   // Fetch actual emails from auth.users table using edge function
   const { data: userEmails, isLoading: isLoadingEmails } = useQuery({
@@ -94,35 +92,10 @@ export const useUserManagement = () => {
     },
   });
 
-  // Fetch user permissions
-  const fetchUserPermissions = useCallback(async (userId: string) => {
-    setIsLoadingPermissions(true);
-    try {
-      const { data, error } = await supabase
-        .from("user_permissions")
-        .select("*")
-        .eq("user_id", userId);
-      
-      if (error) {
-        console.error("Error fetching permissions:", error);
-        throw error;
-      }
-      
-      return data as UserPermission[];
-    } catch (error) {
-      console.error("Error in fetchUserPermissions:", error);
-      throw error;
-    } finally {
-      setIsLoadingPermissions(false);
-    }
-  }, []);
-
   return {
     userEmails,
     isLoadingEmails,
-    isLoadingPermissions,
     setUserRole,
     deleteUser,
-    fetchUserPermissions,
   };
 };

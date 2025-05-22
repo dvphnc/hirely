@@ -35,31 +35,30 @@ export const useEmployeeMutations = () => {
       const { data: existingEmployee } = await supabase
         .from('employee')
         .select('empno')
-        .eq('empno', newEmployee.empno as any)
+        .eq('empno', newEmployee.empno)
         .single();
         
       if (existingEmployee) {
         throw new Error(`Employee with ID ${newEmployee.empno} already exists`);
       }
       
-      const insertData = {
-        empno: newEmployee.empno,
-        firstname: newEmployee.firstname,
-        lastname: newEmployee.lastname,
-        gender: newEmployee.gender,
-        birthdate: newEmployee.birthdate,
-        hiredate: newEmployee.hiredate,
-        sepdate: newEmployee.sepdate,
-        status: 'added',
-        stamp: new Date().toISOString(),
-        updated_by: userId,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Insert the new employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .insert(insertData as any)
+        .insert([
+          {
+            empno: newEmployee.empno,
+            firstname: newEmployee.firstname,
+            lastname: newEmployee.lastname,
+            gender: newEmployee.gender,
+            birthdate: newEmployee.birthdate,
+            hiredate: newEmployee.hiredate,
+            sepdate: newEmployee.sepdate,
+            status: 'added',
+            stamp: new Date().toISOString(),
+            updated_by: userId,
+            updated_at: new Date().toISOString()
+          }
+        ])
         .select();
 
       if (error) throw error;
@@ -98,23 +97,20 @@ export const useEmployeeMutations = () => {
         throw new Error("User not authenticated");
       }
       
-      const updateData = {
-        firstname: employee.firstname,
-        lastname: employee.lastname,
-        gender: employee.gender,
-        birthdate: employee.birthdate,
-        hiredate: employee.hiredate,
-        sepdate: employee.sepdate,
-        status: 'edited',
-        updated_by: userId,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Update the employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData as any)
-        .eq('empno', employee.empno as any)
+        .update({
+          firstname: employee.firstname,
+          lastname: employee.lastname,
+          gender: employee.gender,
+          birthdate: employee.birthdate,
+          hiredate: employee.hiredate,
+          sepdate: employee.sepdate,
+          status: 'edited',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('empno', employee.empno)
         .select();
 
       if (error) throw error;
@@ -152,22 +148,20 @@ export const useEmployeeMutations = () => {
       const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
         .select('*')
-        .eq('empno', employeeId as any)
+        .eq('empno', employeeId)
         .single();
       
       if (fetchError) throw fetchError;
       
-      const updateData = {
-        status: 'deleted',
-        updated_by: userId,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Then update it to mark as deleted with type cast to fix TypeScript issues
+      // Then update it to mark as deleted
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData as any)
-        .eq('empno', employeeId as any)
+        .update({
+          status: 'deleted',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('empno', employeeId)
         .select();
 
       if (error) throw error;
@@ -201,17 +195,14 @@ export const useEmployeeMutations = () => {
         throw new Error("User not authenticated");
       }
       
-      const updateData = {
-        status: 'restored',
-        updated_by: userId,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Update with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update(updateData as any)
-        .eq('empno', employeeId as any)
+        .update({
+          status: 'restored',
+          updated_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('empno', employeeId)
         .select();
 
       if (error) throw error;

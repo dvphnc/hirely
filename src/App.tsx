@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/auth-context";
-import React, { useEffect } from "react";
+import React from "react";
 
 // Pages
 import SignIn from "./pages/SignIn";
@@ -17,46 +17,20 @@ import Departments from "./pages/Departments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import UserManagement from "./pages/UserManagement";
+import AdminSetup from "./pages/adminSetup";
 
 // Create QueryClient outside the component to avoid re-creation on render
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30000,
-      refetchOnWindowFocus: true, // Refresh data when tab regains focus
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, session, fetchUserData } = useAuth();
-
-  useEffect(() => {
-    // Refresh user data when component mounts
-    if (user && session) {
-      // Using setTimeout to prevent potential auth deadlocks
-      setTimeout(() => {
-        fetchUserData();
-      }, 0);
-    }
-    
-    // Log auth state for debugging
-    console.log("Protected route auth state:", { 
-      isAuthenticated: !!user, 
-      isLoading,
-      hasSession: !!session,
-      path: window.location.pathname
-    });
-  }, [user, isLoading, session, fetchUserData]);
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!user || !session) {
-    console.log("No authenticated user detected, redirecting to signin");
+  if (!user) {
     return <Navigate to="/signin" replace />;
   }
 
@@ -65,38 +39,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Admin route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isAdmin, session, fetchUserData } = useAuth();
-
-  useEffect(() => {
-    // Force a refresh of user data when accessing admin routes
-    if (user && session) {
-      // Using setTimeout to prevent potential auth deadlocks
-      setTimeout(() => {
-        fetchUserData();
-      }, 0);
-    }
-    
-    // Log admin auth state for debugging
-    console.log("Admin route auth state:", { 
-      isAuthenticated: !!user, 
-      isAdmin, 
-      isLoading,
-      hasSession: !!session,
-      path: window.location.pathname
-    });
-  }, [user, isAdmin, isLoading, session, fetchUserData]);
+  const { user, isLoading, isAdmin } = useAuth();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!user || !session) {
-    console.log("No authenticated user detected, redirecting to signin");
+  if (!user) {
     return <Navigate to="/signin" replace />;
   }
 
   if (!isAdmin) {
-    console.log("User is not an admin, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -105,24 +58,13 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Public route component (redirects to dashboard if already logged in)
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, session } = useAuth();
-
-  useEffect(() => {
-    // Log public route auth state for debugging
-    console.log("Public route auth state:", { 
-      isAuthenticated: !!user, 
-      isLoading,
-      hasSession: !!session,
-      path: window.location.pathname
-    });
-  }, [user, isLoading, session]);
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (user && session) {
-    console.log("User is already authenticated, redirecting to dashboard");
+  if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -144,6 +86,7 @@ const AppRoutes = () => (
     
     {/* Admin Routes */}
     <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+    <Route path="/admin-setup" element={<AdminRoute><AdminSetup /></AdminRoute>} />
     
     {/* Redirects */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />

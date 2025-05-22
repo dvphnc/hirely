@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,24 +36,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Helper function to clean up auth state in localStorage
-const cleanupAuthState = () => {
-  // Remove standard auth tokens
-  localStorage.removeItem('supabase.auth.token');
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -130,111 +111,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Create a flag to track initialization
-    let isInitialized = false;
-    
-    // Set up auth state listener FIRST to prevent missing any auth events
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state change event:', event, 'User:', newSession?.user?.email);
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
         
-        // Always update session state
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        // Don't make immediate supabase calls in the callback to prevent deadlocks
-        if (newSession?.user) {
-          // If this is an initial load, refresh the session to ensure token validity
-          if (!isInitialized) {
-            try {
-              await supabase.auth.refreshSession();
-              console.log("Session refreshed during initialization");
-            } catch (error) {
-              console.error('Error refreshing session:', error);
-            }
-          }
-          
-          // Defer loading user data to prevent potential deadlocks
-          setTimeout(() => {
-            fetchUserData();
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          // Clear profile and permissions when session is gone
+        if (!session?.user) {
           setProfile(null);
           setPermissions([]);
-          
-          // If not during initialization and user was previously logged in, redirect to sign-in
-          if (isInitialized && window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
-            window.location.href = '/signin';
-          }
         }
       }
     );
 
     // THEN check for existing session
-    const initializeAuth = async () => {
-      try {
-        // Get current session
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
-        
-        console.log("Initial session check:", existingSession ? "Session exists" : "No session");
-        
-        // Update state with current session
-        setSession(existingSession);
-        setUser(existingSession?.user ?? null);
-        
-        if (existingSession?.user) {
-          // Ensure access token is valid by refreshing session
-          try {
-            const { data } = await supabase.auth.refreshSession();
-            console.log("Session refreshed during initialization, valid:", !!data.session);
-            
-            // If refresh succeeded and we have a valid session
-            if (data.session) {
-              // Fetch user data after ensuring we have a valid session
-              await fetchUserData();
-            } else {
-              // If session refresh failed, redirect to sign in
-              window.location.href = '/signin';
-            }
-          } catch (error) {
-            console.error('Error refreshing session:', error);
-            // On error, clean up and redirect
-            cleanupAuthState();
-            window.location.href = '/signin';
-          }
-        }
-        
-        // Mark initialization as complete
-        isInitialized = true;
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error getting session:', error);
-        setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+      
+      if (session?.user) {
+        // Fetch user data after authentication
+        fetchUserData();
       }
-    };
-    
-    initializeAuth();
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Clean up existing auth state to prevent conflicts
-      cleanupAuthState();
-      
-      // Attempt to sign out globally before signing in
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.log('Global sign out failed, continuing with login');
-      }
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -338,9 +245,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Clean up existing auth state first
-      cleanupAuthState();
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -382,23 +286,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Clean up auth state first
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      await supabase.auth.signOut({ scope: 'global' });
-      
-      // Clear state
-      setProfile(null);
-      setPermissions([]);
-      
+      await supabase.auth.signOut();
       toast({
         title: "Logged out",
         description: "You have been logged out successfully.",
       });
-      
-      // Force a page refresh after logout for a clean state
-      window.location.href = '/signin';
+      setProfile(null);
+      setPermissions([]);
     } catch (error: any) {
       toast({
         variant: "destructive",

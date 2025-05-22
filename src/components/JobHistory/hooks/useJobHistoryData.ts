@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Employee, Job as JobType, Department as DepartmentType } from "@/types/supabase";
+import { Employee } from "@/types/supabase";
 import { JobHistoryWithDetails } from "../types/JobHistoryTypes";
 
 export const useJobHistoryData = (employee: Employee | null) => {
@@ -21,11 +21,11 @@ export const useJobHistoryData = (employee: Employee | null) => {
             deptname
           )
         `)
-        .eq("empno", employee.empno as any)
+        .eq("empno", employee.empno)
         .order("effdate", { ascending: false });
       
       if (error) throw new Error(error.message);
-      return data as unknown as JobHistoryWithDetails[];
+      return data as JobHistoryWithDetails[];
     },
     enabled: !!employee,
   });
@@ -38,8 +38,7 @@ export const useJobHistoryData = (employee: Employee | null) => {
         .select("*");
       
       if (error) throw new Error(error.message);
-      // Fixed type casting to ensure compatibility with our Job type
-      return data as unknown as JobType[];
+      return data;
     },
   });
 
@@ -51,8 +50,7 @@ export const useJobHistoryData = (employee: Employee | null) => {
         .select("*");
       
       if (error) throw new Error(error.message);
-      // Fixed type casting
-      return data as unknown as DepartmentType[];
+      return data;
     },
   });
 

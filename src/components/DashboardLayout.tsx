@@ -13,7 +13,8 @@ import {
   Menu, 
   X,
   Settings,
-  UserCog
+  UserCog,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +100,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: Briefcase, label: "Jobs", href: "/jobs" },
     { icon: Building, label: "Departments", href: "/departments" },
     { icon: UserCog, label: "Manage Users", href: "/users", adminOnly: true },
+    { icon: ShieldCheck, label: "Admin Setup", href: "/admin-setup", adminOnly: true },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
