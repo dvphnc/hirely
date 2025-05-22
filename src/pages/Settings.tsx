@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +23,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell 
+} from 'recharts';
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(6, "Current password is required"),
@@ -45,6 +70,9 @@ const Settings = () => {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isClearingData, setIsClearingData] = useState(false);
+  const exportSectionRef = useRef(null);
+  const employeeChartRef = useRef(null);
+  const departmentChartRef = useRef(null);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -72,6 +100,75 @@ const Settings = () => {
       confirmPassword: "",
     },
   });
+
+  // Fetch data for charts and tables
+  const { data: employees, isLoading: employeesLoading } = useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employee")
+        .select("*");
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+  
+  const { data: departments, isLoading: departmentsLoading } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department")
+        .select("*");
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+  
+  const { data: jobHistory, isLoading: jobHistoryLoading } = useQuery({
+    queryKey: ["jobHistory"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("jobhistory")
+        .select("*");
+      
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+  // Calculate chart data
+  const [departmentCounts, setDepartmentCounts] = useState<{name: string; count: number}[]>([]);
+  const [employeeStatusData, setEmployeeStatusData] = useState<{name: string; value: number}[]>([]);
+  
+  useEffect(() => {
+    if (employees && departments && jobHistory) {
+      // Calculate department distribution
+      const deptData = departments.map(dept => {
+        const empInDept = employees?.filter(emp => {
+          const latestJob = jobHistory
+            .filter(job => job.empno === emp.empno)
+            .sort((a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime())[0];
+          return latestJob && latestJob.deptcode === dept.deptcode;
+        }).length || 0;
+        
+        return {
+          name: dept.deptname || dept.deptcode,
+          count: empInDept
+        };
+      });
+      setDepartmentCounts(deptData);
+      
+      // Calculate employee status (active vs inactive)
+      const activeCount = employees.filter(emp => !emp.sepdate).length;
+      const inactiveCount = employees.filter(emp => emp.sepdate).length;
+      setEmployeeStatusData([
+        { name: "Active", value: activeCount },
+        { name: "Inactive", value: inactiveCount }
+      ]);
+    }
+  }, [employees, departments, jobHistory]);
 
   // Function to save settings
   const saveSettings = async () => {
@@ -122,41 +219,115 @@ const Settings = () => {
     }
   };
 
-  // Handle export data
+  // Handle export data as PDF
   const handleExportData = async () => {
     setIsExporting(true);
     try {
-      // Fetch data to export
-      const [employeesResult, departmentsResult, jobsResult, jobHistoryResult] = await Promise.all([
-        supabase.from("employee").select("*"),
-        supabase.from("department").select("*"),
-        supabase.from("job").select("*"),
-        supabase.from("jobhistory").select("*"),
-      ]);
-
-      // Combine data for export
-      const exportData = {
-        employees: employeesResult.data,
-        departments: departmentsResult.data,
-        jobs: jobsResult.data,
-        jobHistory: jobHistoryResult.data,
-        exportedAt: new Date().toISOString(),
-      };
-
-      // Create a blob and download link
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `export-${new Date().toISOString().split("T")[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success("Data exported successfully");
+      // Create PDF document
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.setFontSize(18);
+      pdf.text("Company Data Export", 20, 20);
+      
+      pdf.setFontSize(12);
+      const currentDate = new Date().toLocaleDateString();
+      pdf.text(`Generated on: ${currentDate}`, 20, 30);
+      
+      let yOffset = 40;
+      
+      // Add employee chart to PDF
+      if (employeeChartRef.current && employeeStatusData.length > 0) {
+        pdf.text("Employee Status Distribution", 20, yOffset);
+        yOffset += 5;
+        
+        const employeeCanvas = await html2canvas(employeeChartRef.current);
+        const employeeChartImage = employeeCanvas.toDataURL('image/png');
+        pdf.addImage(employeeChartImage, 'PNG', 20, yOffset, 170, 80);
+        yOffset += 85;
+      }
+      
+      // Add department chart to PDF
+      if (departmentChartRef.current && departmentCounts.length > 0) {
+        // Check if we need to add a new page
+        if (yOffset > 200) {
+          pdf.addPage();
+          yOffset = 20;
+        }
+        
+        pdf.text("Department Distribution", 20, yOffset);
+        yOffset += 5;
+        
+        const deptCanvas = await html2canvas(departmentChartRef.current);
+        const deptChartImage = deptCanvas.toDataURL('image/png');
+        pdf.addImage(deptChartImage, 'PNG', 20, yOffset, 170, 80);
+        yOffset += 85;
+      }
+      
+      // Add employee table
+      if (employees && employees.length > 0) {
+        // Check if we need to add a new page
+        if (yOffset > 200) {
+          pdf.addPage();
+          yOffset = 20;
+        }
+        
+        pdf.text("Employee List", 20, yOffset);
+        yOffset += 5;
+        
+        // Format employee data for table
+        const employeeData = employees.map(emp => [
+          emp.empno,
+          `${emp.firstname} ${emp.lastname}`,
+          emp.gender,
+          emp.hiredate ? new Date(emp.hiredate).toLocaleDateString() : 'N/A',
+          !emp.sepdate ? 'Active' : 'Inactive'
+        ]);
+        
+        autoTable(pdf, {
+          head: [['ID', 'Name', 'Gender', 'Hire Date', 'Status']],
+          body: employeeData,
+          startY: yOffset,
+          margin: { top: 20 },
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] }
+        });
+        
+        yOffset = (pdf as any).lastAutoTable.finalY + 10;
+      }
+      
+      // Add department table
+      if (departments && departments.length > 0) {
+        // Check if we need to add a new page
+        if (yOffset > 200) {
+          pdf.addPage();
+          yOffset = 20;
+        }
+        
+        pdf.text("Department List", 20, yOffset);
+        yOffset += 5;
+        
+        // Format department data for table
+        const departmentData = departments.map(dept => [
+          dept.deptcode,
+          dept.deptname || 'N/A',
+          departmentCounts.find(d => d.name === (dept.deptname || dept.deptcode))?.count || 0
+        ]);
+        
+        autoTable(pdf, {
+          head: [['Code', 'Name', 'Employee Count']],
+          body: departmentData,
+          startY: yOffset,
+          margin: { top: 20 },
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] }
+        });
+      }
+      
+      // Save the PDF
+      pdf.save(`company-data-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("Data exported successfully as PDF");
     } catch (error) {
-      toast.error("Failed to export data");
       console.error("Export error:", error);
+      toast.error("Failed to export data as PDF");
     } finally {
       setIsExporting(false);
     }
@@ -198,6 +369,9 @@ const Settings = () => {
     localStorage.setItem('showInactive', checked.toString());
     queryClient.invalidateQueries({ queryKey: ["employees"] });
   };
+
+  // Colors for pie chart
+  const COLORS = ['#0088FE', '#FF8042'];
 
   return (
     <DashboardLayout>
@@ -277,6 +451,84 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        <div className="md:col-span-2" ref={exportSectionRef}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Visualization</CardTitle>
+              <CardDescription>
+                Charts and data for export
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Employee Status</h3>
+                  <div className="h-[300px]" ref={employeeChartRef}>
+                    {employeesLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p>Loading chart data...</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={employeeStatusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {employeeStatusData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Department Distribution</h3>
+                  <div className="h-[300px]" ref={departmentChartRef}>
+                    {departmentsLoading || employeesLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p>Loading chart data...</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={departmentCounts}
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 40,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="name" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={70}
+                          />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="count" fill="#8a3ab9" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         
         <Card className="md:col-span-2">
           <CardHeader>
@@ -313,8 +565,12 @@ const Settings = () => {
                   onClick={handleExportData}
                   disabled={isExporting}
                 >
-                  {isExporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Export Data
+                  {isExporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileDown className="mr-2 h-4 w-4" />
+                  )}
+                  Export as PDF
                 </Button>
                 <Button 
                   variant="destructive"

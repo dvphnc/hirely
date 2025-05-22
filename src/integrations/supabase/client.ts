@@ -6,6 +6,8 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://sglndmhreehyvslotves.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnbG5kbWhyZWVoeXZzbG90dmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NDc4ODQsImV4cCI6MjA1OTIyMzg4NH0.sxCdTuxgFeTUsz8FreMXzXRlfITUEa5XUrTb8K7d7F8";
 
+const isBrowser = typeof window !== 'undefined';
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -22,15 +24,15 @@ export const supabase = createClient<Database>(
       schema: 'public'
     },
     auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
-      detectSessionInUrl: false,
+      persistSession: isBrowser,
+      autoRefreshToken: isBrowser,
+      storage: isBrowser ? localStorage : undefined,
+      detectSessionInUrl: isBrowser ? false : undefined,
       flowType: 'implicit',
-      debug: true, // Enable debug mode for more auth logging
-      onAuthStateChange: (event, session) => {
+      debug: isBrowser ? true : false, // Enable debug mode for more auth logging in browser only
+      onAuthStateChange: isBrowser ? (event, session) => {
         console.log("Supabase Auth Event:", event, session ? "Session exists" : "No session");
-      }
+      } : undefined
     }
   }
 );
