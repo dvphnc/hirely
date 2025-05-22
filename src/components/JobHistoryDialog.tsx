@@ -1,6 +1,6 @@
 
 import React, { useEffect } from "react";
-import { Employee, Job, Department } from "@/types/supabase";
+import { Employee } from "@/types/supabase";
 import { useJobHistoryData } from "./JobHistory/hooks/useJobHistoryData";
 import { JobHistoryDialogManager } from "./JobHistory/components/JobHistoryDialogManager";
 import { JobHistoryActionHandlers } from "./JobHistory/components/JobHistoryActionHandlers";
@@ -74,8 +74,8 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
                 isOpen={isAddOpen}
                 onOpenChange={setIsAddOpen}
                 employee={employee}
-                jobs={jobs as unknown as Job[]}
-                departments={departments as unknown as Department[]}
+                jobs={jobs}
+                departments={departments}
                 onSubmit={handleCreateJobHistory}
                 isSubmitting={createJobHistoryMutation.isPending}
               />
@@ -85,8 +85,8 @@ const JobHistoryDialog = ({ employee, open, onOpenChange }: JobHistoryDialogProp
                 onOpenChange={setIsEditOpen}
                 employee={employee}
                 currentJobHistory={currentJobHistory}
-                jobs={jobs as unknown as Job[]}
-                departments={departments as unknown as Department[]}
+                jobs={jobs}
+                departments={departments}
                 onSubmit={handleUpdateJobHistory}
                 isSubmitting={updateJobHistoryMutation.isPending}
               />
