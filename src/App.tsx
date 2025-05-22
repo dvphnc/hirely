@@ -17,7 +17,6 @@ import Departments from "./pages/Departments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import UserManagement from "./pages/UserManagement";
-import AdminSetup from "./pages/adminSetup";
 
 // Create QueryClient outside the component to avoid re-creation on render
 const queryClient = new QueryClient();
@@ -86,7 +85,6 @@ const AppRoutes = () => (
     
     {/* Admin Routes */}
     <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-    <Route path="/admin-setup" element={<AdminRoute><AdminSetup /></AdminRoute>} />
     
     {/* Redirects */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
