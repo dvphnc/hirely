@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,7 @@ const tables = MANAGED_TABLES;
 
 const UserManagement = () => {
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, session, fetchUserData } = useAuth();
   const queryClient = useQueryClient();
   const { userEmails, isLoadingEmails, setUserRole, deleteUser } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,49 +47,89 @@ const UserManagement = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (!isAdmin) {
-      navigate("/dashboard");
-      toast.error("You don't have permission to access this page");
-    }
-  }, [isAdmin, navigate]);
-
-  // Enhancement: Fix for the "Manage Users" tab disappearing issue
-  // Add more robust session refresh mechanism on component mount
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      // Force session refresh to ensure admin status is correctly recognized
+  // Wrapper for refreshing session
+  const refreshSession = useCallback(async () => {
+    try {
+      console.log("Manually refreshing auth session");
+      
+      // First attempt to refresh the session
       const { data } = await supabase.auth.refreshSession();
       
       if (data.session) {
-        // Force a re-render by invalidating relevant queries
+        console.log("Session refresh successful");
+        
+        // After successful refresh, re-fetch user data
+        await fetchUserData();
+        
+        // Invalidate relevant queries
         queryClient.invalidateQueries({ queryKey: ['users'] });
+        return true;
+      } else {
+        console.log("Session refresh failed - no session returned");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+      return false;
+    }
+  }, [queryClient, fetchUserData]);
+
+  // Check admin status and refresh session when component mounts
+  useEffect(() => {
+    // Function to verify authorization
+    const verifyAdminAccess = async () => {
+      console.log("Verifying admin access:", { isAdmin, hasUser: !!user });
+      
+      if (!user || !session) {
+        // No user or session, redirect to signin
+        navigate("/signin");
+        toast.error("You need to sign in to access this page");
+        return;
+      }
+      
+      if (!isAdmin) {
+        // Not an admin user, try refreshing session and checking again
+        const refreshSucceeded = await refreshSession();
+        
+        // After refresh, if still not admin, redirect
+        if (!refreshSucceeded || !isAdmin) {
+          navigate("/dashboard");
+          toast.error("You don't have permission to access this page");
+        }
       }
     };
     
-    // Check admin status when component mounts
-    checkAdminStatus();
+    verifyAdminAccess();
     
-    // Also set up a window focus event listener to check status when tab regains focus
+    // Set up regular session refresh
+    const refreshInterval = setInterval(() => {
+      if (user && session) {
+        refreshSession();
+      }
+    }, 60000); // Refresh every minute
+    
+    return () => clearInterval(refreshInterval);
+  }, [isAdmin, navigate, user, session, refreshSession]);
+  
+  // Enhanced session refresh on window focus
+  useEffect(() => {
     const handleFocus = () => {
-      if (user) {
-        checkAdminStatus();
+      if (user && session) {
+        refreshSession();
       }
     };
     
     window.addEventListener('focus', handleFocus);
-    
-    // Clean up event listener
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user, queryClient]);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, session, refreshSession]);
 
   // Fetch profiles with user emails
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
+      // Ensure we have a fresh session before making the request
+      await refreshSession();
+      
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -112,7 +152,8 @@ const UserManagement = () => {
         } as ProfileWithEmail;
       }) || [];
     },
-    enabled: isAdmin && !isLoadingEmails,
+    enabled: isAdmin && !isLoadingEmails && !!session,
+    refetchInterval: 30000, // Refresh data every 30 seconds
   });
 
   // Get updated_by user emails
@@ -154,12 +195,12 @@ const UserManagement = () => {
       await Promise.all(promises);
       return result;
     },
-    enabled: !!users && !!userEmails,
+    enabled: !!users && !!userEmails && !!session,
   });
 
   // Subscribe to realtime updates for the profiles table
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !session) return;
     
     const channel = supabase
       .channel('public:profiles')
@@ -170,6 +211,7 @@ const UserManagement = () => {
           table: 'profiles'
         }, 
         (payload) => {
+          console.log('Profile change detected:', payload);
           // Refresh user data when profiles change
           queryClient.invalidateQueries({ queryKey: ['users'] });
         }
@@ -179,11 +221,11 @@ const UserManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, queryClient]);
+  }, [isAdmin, queryClient, session]);
 
   // Subscribe to realtime updates for the user_permissions table
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !session) return;
     
     const channel = supabase
       .channel('public:user_permissions')
@@ -194,6 +236,7 @@ const UserManagement = () => {
           table: 'user_permissions'
         }, 
         (payload) => {
+          console.log('Permission change detected:', payload);
           // Refresh user data when permissions change
           queryClient.invalidateQueries({ queryKey: ['users'] });
         }
@@ -203,11 +246,14 @@ const UserManagement = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, queryClient]);
+  }, [isAdmin, queryClient, session]);
 
   // Update user permissions mutation
   const updatePermissionsMutation = useMutation({
     mutationFn: async (updatedPermissions: UserPermission[]) => {
+      // Ensure we have a fresh session before making the request
+      await refreshSession();
+      
       const currentUser = (await supabase.auth.getUser()).data.user;
       
       for (const permission of updatedPermissions) {
@@ -253,10 +299,14 @@ const UserManagement = () => {
         userId: selectedUser.id,
         role: selectedRole
       });
+      setIsRoleDialogOpen(false);
     }
   };
 
   const handleOpenPermissionDialog = async (user: ProfileWithEmail) => {
+    // Ensure fresh session
+    await refreshSession();
+    
     const { data, error } = await supabase
       .from("user_permissions")
       .select("*")
@@ -363,6 +413,20 @@ const UserManagement = () => {
     // Try to find the email in userEmails or updatedByEmails
     return (userEmails?.[updatedById] || updatedByEmails?.[updatedById] || 'Unknown User');
   };
+
+  // If session is lost during interaction, show an error
+  if (!session) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <p className="text-red-500">Your session has expired. Please sign in again.</p>
+          <Button onClick={() => navigate('/signin')}>
+            Sign In
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Loading state when fetching emails
   if (isLoadingEmails) {
