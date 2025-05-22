@@ -22,8 +22,7 @@ const Employees = () => {
   const [isJobHistoryOpen, setIsJobHistoryOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const { isAdmin } = useAuth();
-  // --- IBINALIK SA 'employee' DITO, DAHIL ITO ANG NASA SUPABASE MO ---
-  const { canAdd, canEdit, canDelete } = usePermission('employee'); // <--- IBINALIK DITO
+  const { canAdd, canEdit, canDelete } = usePermission('employee');
 
   // Para sa debugging: I-check ang values na ito sa browser console
   console.log("Permissions in Employees.tsx (from usePermission):", { canAdd, canEdit, canDelete });
@@ -174,9 +173,8 @@ const Employees = () => {
               onDeleteClick={handleDeleteClick}
               onJobHistoryClick={handleJobHistoryClick}
               onRestoreClick={isAdmin ? handleRestoreEmployee : undefined}
-              // --- DITO ANG PAGBABAGO: IPASA ANG TAMANG VALUE SA canEdit at canDelete ---
-              canEdit={canEdit || isAdmin} // <--- Gagamitin ang canEdit mula sa usePermission('employee')
-              canDelete={canDelete || isAdmin} // <--- Gagamitin ang canDelete mula sa usePermission('employee')
+              canEdit={canEdit || isAdmin}
+              canDelete={canDelete || isAdmin}
             />
           </CardContent>
         </Card>
@@ -206,8 +204,8 @@ const Employees = () => {
               employee={currentEmployee}
               open={isDeleteOpen}
               onOpenChange={setIsDeleteOpen}
-              onConfirmDelete={handleConfirmDelete} // Make sure this prop is handled in DeleteEmployeeDialog
-              isDeleting={deleteEmployeeMutation.isPending} // Make sure this prop is handled in DeleteEmployeeDialog
+              onConfirmDelete={handleConfirmDelete}
+              isDeleting={deleteEmployeeMutation.isPending}
             />
           )}
 
@@ -221,4 +219,3 @@ const Employees = () => {
     };
 
     export default Employees;
-    
