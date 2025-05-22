@@ -24,6 +24,9 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      storage: localStorage,
+      detectSessionInUrl: false,
+      flowType: 'implicit'
     }
   }
 );
