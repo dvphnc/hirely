@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
@@ -38,7 +39,7 @@ const UserManagement = () => {
   const navigate = useNavigate();
   const { isAdmin, user, session, fetchUserData } = useAuth();
   const queryClient = useQueryClient();
-  const { userEmails, isLoadingEmails, setUserRole, deleteUser } = useUserManagement();
+  const { userEmails, isLoadingEmails, isLoadingPermissions, setUserRole, deleteUser, fetchUserPermissions } = useUserManagement();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -46,6 +47,7 @@ const UserManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
+  const [isLoadingDialog, setIsLoadingDialog] = useState(false);
 
   // Wrapper for refreshing session
   const refreshSession = useCallback(async () => {
@@ -133,7 +135,7 @@ const UserManagement = () => {
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("*") as { data: UserProfile[], error: any };
+      .select("*");
       
       if (profilesError) throw profilesError;
       
@@ -304,43 +306,44 @@ const UserManagement = () => {
   };
 
   const handleOpenPermissionDialog = async (user: ProfileWithEmail) => {
-    // Ensure fresh session
-    await refreshSession();
-    
-    const { data, error } = await supabase
-      .from("user_permissions")
-      .select("*")
-      .eq("user_id", user.id);
-    
-    if (error) {
-      toast.error(`Error fetching permissions: ${error.message}`);
-      return;
+    try {
+      setIsLoadingDialog(true);
+      setSelectedUser(user);
+      
+      // Ensure fresh session
+      await refreshSession();
+      
+      // Fetch user permissions
+      const userPermissions = await fetchUserPermissions(user.id);
+      console.log("Fetched user permissions:", userPermissions);
+      
+      // Create default permissions for tables that don't have entries
+      const defaultPermissions: UserPermission[] = [];
+      
+      tables.forEach(table => {
+        if (!userPermissions.some(p => p.table_name === table.name)) {
+          defaultPermissions.push({
+            id: crypto.randomUUID(),
+            user_id: user.id,
+            table_name: table.name,
+            can_add: true,
+            can_edit: true,
+            can_delete: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updated_by: null
+          });
+        }
+      });
+      
+      setPermissions([...userPermissions, ...defaultPermissions]);
+      setIsPermissionDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error opening permission dialog:", error);
+      toast.error(`Error loading permissions: ${error.message}`);
+    } finally {
+      setIsLoadingDialog(false);
     }
-    
-    let userPermissions = data as UserPermission[];
-    
-    // Create default permissions for tables that don't have entries
-    const defaultPermissions: UserPermission[] = [];
-    
-    tables.forEach(table => {
-      if (!userPermissions.some(p => p.table_name === table.name)) {
-        defaultPermissions.push({
-          id: crypto.randomUUID(),
-          user_id: user.id,
-          table_name: table.name,
-          can_add: true,
-          can_edit: true,
-          can_delete: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          updated_by: null
-        });
-      }
-    });
-    
-    setPermissions([...userPermissions, ...defaultPermissions]);
-    setSelectedUser(user);
-    setIsPermissionDialogOpen(true);
   };
 
   const handleUpdatePermissions = () => {
@@ -515,9 +518,10 @@ const UserManagement = () => {
                               size="sm"
                               className="gap-1"
                               onClick={() => handleOpenPermissionDialog(userProfile)}
+                              disabled={isLoadingDialog}
                             >
                               <UserCog className="h-4 w-4" />
-                              Permissions
+                              {isLoadingDialog ? "Loading..." : "Permissions"}
                             </Button>
                             <Button
                               variant="outline"

@@ -42,23 +42,24 @@ export const useEmployeeMutations = () => {
         throw new Error(`Employee with ID ${newEmployee.empno} already exists`);
       }
       
+      const insertData = {
+        empno: newEmployee.empno,
+        firstname: newEmployee.firstname,
+        lastname: newEmployee.lastname,
+        gender: newEmployee.gender,
+        birthdate: newEmployee.birthdate,
+        hiredate: newEmployee.hiredate,
+        sepdate: newEmployee.sepdate,
+        status: 'added',
+        stamp: new Date().toISOString(),
+        updated_by: userId,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Insert the new employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .insert([
-          {
-            empno: newEmployee.empno,
-            firstname: newEmployee.firstname,
-            lastname: newEmployee.lastname,
-            gender: newEmployee.gender,
-            birthdate: newEmployee.birthdate,
-            hiredate: newEmployee.hiredate,
-            sepdate: newEmployee.sepdate,
-            status: 'added',
-            stamp: new Date().toISOString(),
-            updated_by: userId,
-            updated_at: new Date().toISOString()
-          }
-        ])
+        .insert(insertData)
         .select();
 
       if (error) throw error;
@@ -97,20 +98,23 @@ export const useEmployeeMutations = () => {
         throw new Error("User not authenticated");
       }
       
+      const updateData = {
+        firstname: employee.firstname,
+        lastname: employee.lastname,
+        gender: employee.gender,
+        birthdate: employee.birthdate,
+        hiredate: employee.hiredate,
+        sepdate: employee.sepdate,
+        status: 'edited',
+        updated_by: userId,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Update the employee with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update({
-          firstname: employee.firstname,
-          lastname: employee.lastname,
-          gender: employee.gender,
-          birthdate: employee.birthdate,
-          hiredate: employee.hiredate,
-          sepdate: employee.sepdate,
-          status: 'edited',
-          updated_by: userId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('empno', employee.empno)
+        .update(updateData)
+        .eq('empno', employee.empno as any)
         .select();
 
       if (error) throw error;
@@ -148,20 +152,22 @@ export const useEmployeeMutations = () => {
       const { data: employeeData, error: fetchError } = await supabase
         .from('employee')
         .select('*')
-        .eq('empno', employeeId)
+        .eq('empno', employeeId as any)
         .single();
       
       if (fetchError) throw fetchError;
       
-      // Then update it to mark as deleted
+      const updateData = {
+        status: 'deleted',
+        updated_by: userId,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Then update it to mark as deleted with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update({
-          status: 'deleted',
-          updated_by: userId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('empno', employeeId)
+        .update(updateData)
+        .eq('empno', employeeId as any)
         .select();
 
       if (error) throw error;
@@ -195,14 +201,17 @@ export const useEmployeeMutations = () => {
         throw new Error("User not authenticated");
       }
       
+      const updateData = {
+        status: 'restored',
+        updated_by: userId,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Update with type cast to fix TypeScript issues
       const { data, error } = await supabase
         .from('employee')
-        .update({
-          status: 'restored',
-          updated_by: userId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('empno', employeeId)
+        .update(updateData)
+        .eq('empno', employeeId as any)
         .select();
 
       if (error) throw error;
