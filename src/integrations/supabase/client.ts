@@ -24,7 +24,7 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storage: localStorage,
+      storage: typeof window !== 'undefined' ? localStorage : undefined,
       detectSessionInUrl: false,
       flowType: 'implicit',
       debug: true, // Enable debug mode for more auth logging

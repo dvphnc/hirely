@@ -24,9 +24,6 @@ import {
 import { EmployeeFormValues, employeeSchema, EditEmployeeDialogProps } from "../types/EmployeeTypes";
 import { useEmployeeMutations } from "../hooks/useEmployeeMutations";
 import { createAuditTrail } from "@/utils/auditTrail";
-
-// --- BINAGO ANG IMPORT DITO ---
-// Gagamitin natin ang usePermission hook mula sa iyong auth-context.
 import { usePermission } from "@/context/auth-context";
 
 export const EditEmployeeDialog = ({
@@ -36,9 +33,7 @@ export const EditEmployeeDialog = ({
   onManageJobHistory
 }: EditEmployeeDialogProps) => {
   const { updateEmployeeMutation } = useEmployeeMutations();
-  // --- BINAGO ANG PAGKUHA NG PERMISSION DITO ---
-  // Gamitin ang usePermission hook para sa 'employees' table.
-  const { canEdit } = usePermission('employee'); // Kukunin ang 'canEdit' property para sa 'employees' table
+  const { canEdit } = usePermission('employee');
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -68,47 +63,35 @@ export const EditEmployeeDialog = ({
   }, [employee, form]);
 
   const onSubmit = (data: EmployeeFormValues) => {
-    // --- BINAGO ANG PERMISSION CHECK DITO ---
-    // Direkta nang gagamitin ang 'canEdit' na galing sa usePermission hook.
     if (!canEdit) {
-      console.error("Permission Denied: Ang user ay walang pahintulot na mag-edit ng mga empleyado.");
-      onOpenChange(false); // Isara ang dialog dahil hindi pinapayagan ang aksyon
-      return; // Mahalaga: Itigil ang function kung walang pahintulot
+      console.error("Permission Denied: User does not have permission to edit employees.");
+      onOpenChange(false);
+      return;
     }
 
     updateEmployeeMutation.mutate(data, {
       onSuccess: () => {
         onOpenChange(false);
-        // Opsyonal, magpakita ng mensahe ng tagumpay sa user
       },
       onError: (error) => {
-        // Pangasiwaan ang error mula sa mutation, halimbawa, magpakita ng mensahe sa user
-        console.error("Nabigo na i-update ang empleyado:", error);
-        // Maaari kang magpakita ng mas user-friendly na mensahe ng error dito,
-        // posibleng gamit ang isang toast notification o isang alert system.
+        console.error("Failed to update employee:", error);
       }
     });
   };
 
   const handleJobHistoryClick = async () => {
-    // Kung may specific permission para sa job history, gamitin din ang usePermission
-    // Halimbawa: const { canViewJobHistory } = usePermission('job_history');
-    // if (!canViewJobHistory) { ... return; }
-
-    // I-log ang access sa kasaysayan ng trabaho sa audit trail
     if (employee?.empno) {
       try {
-        // Markahan ang record ng empleyado bilang tinitingnan para sa kasaysayan ng trabaho
         await createAuditTrail(
           {
             empno: employee.empno,
             status: 'viewed_job_history'
           },
-          'UPDATE', // O 'VIEW' kung sinusuportahan ito ng iyong audit trail para sa mga aksyon sa pagtingin
+          'UPDATE',
           'employee'
         );
       } catch (error) {
-        console.error("Error sa pag-update ng employee audit trail para sa kasaysayan ng trabaho:", error);
+        console.error("Error updating employee audit trail for job history:", error);
       }
     }
 
@@ -117,13 +100,13 @@ export const EditEmployeeDialog = ({
     }
   };
 
-  console.log("User can edit employee (from usePermission):", canEdit); // Para sa debugging: I-check ito sa iyong browser console
+  console.log("User can edit employee (from usePermission):", canEdit);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>I-edit ang Empleyado</DialogTitle>
+          <DialogTitle>Edit Employee</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -132,7 +115,7 @@ export const EditEmployeeDialog = ({
               name="empno"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Numero ng Empleyado</FormLabel>
+                  <FormLabel>Employee Number</FormLabel>
                   <FormControl>
                     <Input {...field} disabled className="bg-muted/50" />
                   </FormControl>
@@ -146,10 +129,9 @@ export const EditEmployeeDialog = ({
                 name="lastname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Apelyido</FormLabel>
+                    <FormLabel>Last Name</FormLabel>
                     <FormControl>
-                      {/* I-disable ang mga input field kung hindi maaaring mag-edit ang user */}
-                      <Input placeholder="Ilagay ang apelyido" {...field} disabled={!canEdit} />
+                      <Input placeholder="Enter last name" {...field} disabled={!canEdit} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -160,10 +142,9 @@ export const EditEmployeeDialog = ({
                 name="firstname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pangalan</FormLabel>
+                    <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      {/* I-disable ang mga input field kung hindi maaaring mag-edit ang user */}
-                      <Input placeholder="Ilagay ang pangalan" {...field} disabled={!canEdit} />
+                      <Input placeholder="Enter first name" {...field} disabled={!canEdit} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,20 +156,20 @@ export const EditEmployeeDialog = ({
               name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kasarian</FormLabel>
+                  <FormLabel>Gender</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    disabled={!canEdit} // I-disable ang Select kung walang pahintulot sa pag-edit
+                    disabled={!canEdit}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pumili ng kasarian" />
+                        <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="M">Lalaki</SelectItem>
-                      <SelectItem value="F">Babae</SelectItem>
+                      <SelectItem value="M">Male</SelectItem>
+                      <SelectItem value="F">Female</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -200,7 +181,7 @@ export const EditEmployeeDialog = ({
               name="birthdate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Petsa ng Kapanganakan</FormLabel>
+                  <FormLabel>Date of Birth</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} disabled={!canEdit} />
                   </FormControl>
@@ -213,7 +194,7 @@ export const EditEmployeeDialog = ({
               name="hiredate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Petsa ng Pagkaka-hire</FormLabel>
+                  <FormLabel>Hire Date</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} disabled={!canEdit} />
                   </FormControl>
@@ -226,7 +207,7 @@ export const EditEmployeeDialog = ({
               name="sepdate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Petsa ng Paghihiwalay (opsyonal)</FormLabel>
+                  <FormLabel>Separation Date (optional)</FormLabel>
                   <FormControl>
                     <Input
                       type="date"
@@ -248,17 +229,15 @@ export const EditEmployeeDialog = ({
                   type="button"
                   variant="outline"
                   onClick={handleJobHistoryClick}
-                  // Maaari mo ring i-disable ito kung mayroon itong partikular na pahintulot
-                  // disabled={!hasPermission('employee:manage_job_history')}
                 >
-                  <History className="mr-2 h-4 w-4" /> Pamahalaan ang Kasaysayan ng Trabaho
+                  <History className="mr-2 h-4 w-4" /> Manage Job History
                 </Button>
                 <Button
                   type="submit"
-                  disabled={updateEmployeeMutation.isPending || !canEdit} // I-disable kung walang pahintulot
+                  disabled={updateEmployeeMutation.isPending || !canEdit}
                 >
                   {updateEmployeeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  I-update ang Empleyado
+                  Update Employee
                 </Button>
               </div>
             </DialogFooter>
