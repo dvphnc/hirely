@@ -26,7 +26,11 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       storage: localStorage,
       detectSessionInUrl: false,
-      flowType: 'implicit'
+      flowType: 'implicit',
+      debug: true, // Enable debug mode for more auth logging
+      onAuthStateChange: (event, session) => {
+        console.log("Supabase Auth Event:", event, session ? "Session exists" : "No session");
+      }
     }
   }
 );

@@ -24,22 +24,32 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       staleTime: 30000,
+      refetchOnWindowFocus: true, // Refresh data when tab regains focus
     },
   },
 });
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, session } = useAuth();
+  const { user, isLoading, session, fetchUserData } = useAuth();
 
   useEffect(() => {
+    // Refresh user data when component mounts
+    if (user && session) {
+      // Using setTimeout to prevent potential auth deadlocks
+      setTimeout(() => {
+        fetchUserData();
+      }, 0);
+    }
+    
     // Log auth state for debugging
     console.log("Protected route auth state:", { 
       isAuthenticated: !!user, 
       isLoading,
-      hasSession: !!session 
+      hasSession: !!session,
+      path: window.location.pathname
     });
-  }, [user, isLoading, session]);
+  }, [user, isLoading, session, fetchUserData]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -55,17 +65,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Admin route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isAdmin, session } = useAuth();
+  const { user, isLoading, isAdmin, session, fetchUserData } = useAuth();
 
   useEffect(() => {
+    // Force a refresh of user data when accessing admin routes
+    if (user && session) {
+      // Using setTimeout to prevent potential auth deadlocks
+      setTimeout(() => {
+        fetchUserData();
+      }, 0);
+    }
+    
     // Log admin auth state for debugging
     console.log("Admin route auth state:", { 
       isAuthenticated: !!user, 
       isAdmin, 
       isLoading,
-      hasSession: !!session 
+      hasSession: !!session,
+      path: window.location.pathname
     });
-  }, [user, isAdmin, isLoading, session]);
+  }, [user, isAdmin, isLoading, session, fetchUserData]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -93,7 +112,8 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     console.log("Public route auth state:", { 
       isAuthenticated: !!user, 
       isLoading,
-      hasSession: !!session 
+      hasSession: !!session,
+      path: window.location.pathname
     });
   }, [user, isLoading, session]);
 

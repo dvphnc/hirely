@@ -130,23 +130,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    // Create a flag to track initialization
+    let isInitialized = false;
+    
     // Set up auth state listener FIRST to prevent missing any auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        console.log('Auth state change event:', event);
+      async (event, newSession) => {
+        console.log('Auth state change event:', event, 'User:', newSession?.user?.email);
+        
+        // Always update session state
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         // Don't make immediate supabase calls in the callback to prevent deadlocks
         if (newSession?.user) {
+          // If this is an initial load, refresh the session to ensure token validity
+          if (!isInitialized) {
+            try {
+              await supabase.auth.refreshSession();
+              console.log("Session refreshed during initialization");
+            } catch (error) {
+              console.error('Error refreshing session:', error);
+            }
+          }
+          
           // Defer loading user data to prevent potential deadlocks
           setTimeout(() => {
             fetchUserData();
           }, 0);
-        } else if (!newSession) {
+        } else if (event === 'SIGNED_OUT') {
           // Clear profile and permissions when session is gone
           setProfile(null);
           setPermissions([]);
+          
+          // If not during initialization and user was previously logged in, redirect to sign-in
+          if (isInitialized && window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
+            window.location.href = '/signin';
+          }
         }
       }
     );
@@ -154,21 +174,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // THEN check for existing session
     const initializeAuth = async () => {
       try {
+        // Get current session
         const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        console.log("Initial session check:", existingSession ? "Session exists" : "No session");
+        
+        // Update state with current session
         setSession(existingSession);
         setUser(existingSession?.user ?? null);
-        setIsLoading(false);
         
         if (existingSession?.user) {
           // Ensure access token is valid by refreshing session
           try {
-            await supabase.auth.refreshSession();
-            // Fetch user data after ensuring we have a valid session
-            await fetchUserData();
+            const { data } = await supabase.auth.refreshSession();
+            console.log("Session refreshed during initialization, valid:", !!data.session);
+            
+            // If refresh succeeded and we have a valid session
+            if (data.session) {
+              // Fetch user data after ensuring we have a valid session
+              await fetchUserData();
+            } else {
+              // If session refresh failed, redirect to sign in
+              window.location.href = '/signin';
+            }
           } catch (error) {
             console.error('Error refreshing session:', error);
+            // On error, clean up and redirect
+            cleanupAuthState();
+            window.location.href = '/signin';
           }
         }
+        
+        // Mark initialization as complete
+        isInitialized = true;
+        setIsLoading(false);
       } catch (error) {
         console.error('Error getting session:', error);
         setIsLoading(false);
@@ -177,7 +216,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
