@@ -2,8 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Pointing at the original Supabase project (outside Lovable Cloud) where the
+// existing schema (profiles, user_permissions, employee, jobhistory, etc.) and
+// users live. Anon key is safe to ship in the client.
+const SUPABASE_URL = "https://vmqoyxhbvcuiesptnthg.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtcW95eGhidmN1aWVzcHRudGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzIxMjcsImV4cCI6MjA5MjI0ODEyN30.6hibfvVJBShlUAhTDLu_Au3aawwi05xCtS50b_9R7Kw";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
