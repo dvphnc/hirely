@@ -1,5 +1,5 @@
 
-import { UserRole } from "@/context/auth-context";
+export type UserRole = 'admin' | 'user' | 'blocked';
 
 export interface UserProfile {
   id: string;
