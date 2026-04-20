@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -38,17 +37,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to clean up auth state in localStorage
 const cleanupAuthState = () => {
-  // Remove standard auth tokens
   localStorage.removeItem('supabase.auth.token');
-  // Remove all Supabase auth keys from localStorage
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
       localStorage.removeItem(key);
     }
   });
-  // Remove from sessionStorage if in use
   Object.keys(sessionStorage || {}).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
       sessionStorage.removeItem(key);
@@ -65,15 +60,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const isAdmin = profile?.role === 'admin';
 
-  const fetchUserData = async () => {
-    if (!user) return;
+  // ✅ Fix: wrap in useCallback so it doesn't change on every render
+  const fetchUserData = useCallback(async (userId?: string) => {
+    const id = userId || user?.id;
+    if (!id) return;
 
     try {
-      // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', id)
         .single();
 
       if (profileError) throw profileError;
@@ -82,88 +78,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(profileData as UserProfile);
       }
 
-      // Fetch user permissions
       const { data: permissionsData, error: permissionsError } = await supabase
         .from('user_permissions')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', id);
 
       if (permissionsError) throw permissionsError;
 
       let userPermissions = permissionsData as UserPermission[] || [];
-      
-      // Check if we need to create default permissions
+
       if (userPermissions.length === 0) {
-        // Create default permissions for a new user
         const defaultPermissions = MANAGED_TABLES.map(table => ({
-          user_id: user.id,
+          user_id: id,
           table_name: table.name,
           can_add: true,
           can_edit: true,
           can_delete: true
         }));
-        
-        // If there are tables without permissions, create default ones
+
         if (defaultPermissions.length > 0) {
           const { error: insertError } = await supabase
             .from('user_permissions')
             .insert(defaultPermissions);
-            
+
           if (!insertError) {
-            // Re-fetch permissions after creating defaults
             const { data: refreshedPermissions } = await supabase
               .from('user_permissions')
               .select('*')
-              .eq('user_id', user.id);
-              
+              .eq('user_id', id);
+
             if (refreshedPermissions) {
               userPermissions = refreshedPermissions;
             }
           }
         }
       }
-      
+
       setPermissions(userPermissions);
     } catch (error: any) {
       console.error('Error fetching user data:', error);
     }
-  };
+  }, []); // ✅ empty deps — stable reference
 
   useEffect(() => {
-    // Create a flag to track initialization
     let isInitialized = false;
-    
-    // Set up auth state listener FIRST to prevent missing any auth events
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('Auth state change event:', event, 'User:', newSession?.user?.email);
-        
-        // Always update session state
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        
-        // Don't make immediate supabase calls in the callback to prevent deadlocks
+
         if (newSession?.user) {
-          // If this is an initial load, refresh the session to ensure token validity
-          if (!isInitialized) {
-            try {
-              await supabase.auth.refreshSession();
-              console.log("Session refreshed during initialization");
-            } catch (error) {
-              console.error('Error refreshing session:', error);
-            }
-          }
-          
-          // Defer loading user data to prevent potential deadlocks
+          // ✅ Pass userId directly to avoid stale closure
           setTimeout(() => {
-            fetchUserData();
+            fetchUserData(newSession.user.id);
           }, 0);
         } else if (event === 'SIGNED_OUT') {
-          // Clear profile and permissions when session is gone
           setProfile(null);
           setPermissions([]);
-          
-          // If not during initialization and user was previously logged in, redirect to sign-in
+
           if (isInitialized && window.location.pathname !== '/signin' && window.location.pathname !== '/signup') {
             window.location.href = '/signin';
           }
@@ -171,41 +146,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
     const initializeAuth = async () => {
       try {
-        // Get current session
         const { data: { session: existingSession } } = await supabase.auth.getSession();
-        
+
         console.log("Initial session check:", existingSession ? "Session exists" : "No session");
-        
-        // Update state with current session
+
         setSession(existingSession);
         setUser(existingSession?.user ?? null);
-        
+
         if (existingSession?.user) {
-          // Ensure access token is valid by refreshing session
-          try {
-            const { data } = await supabase.auth.refreshSession();
-            console.log("Session refreshed during initialization, valid:", !!data.session);
-            
-            // If refresh succeeded and we have a valid session
-            if (data.session) {
-              // Fetch user data after ensuring we have a valid session
-              await fetchUserData();
-            } else {
-              // If session refresh failed, redirect to sign in
-              window.location.href = '/signin';
-            }
-          } catch (error) {
-            console.error('Error refreshing session:', error);
-            // On error, clean up and redirect
-            cleanupAuthState();
-            window.location.href = '/signin';
-          }
+          await fetchUserData(existingSession.user.id);
         }
-        
-        // Mark initialization as complete
+
         isInitialized = true;
         setIsLoading(false);
       } catch (error) {
@@ -213,44 +166,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       }
     };
-    
+
     initializeAuth();
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserData]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Clean up existing auth state to prevent conflicts
       cleanupAuthState();
-      
-      // Attempt to sign out globally before signing in
+
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
-        // Continue even if this fails
         console.log('Global sign out failed, continuing with login');
       }
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: error.message,
-        });
+        toast({ variant: "destructive", title: "Login failed", description: error.message });
         return false;
       }
 
       if (data.user) {
-        // Fetch user profile to check if blocked
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -258,39 +200,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (profileError) {
-          toast({
-            variant: "destructive",
-            title: "Error fetching profile",
-            description: profileError.message,
-          });
+          toast({ variant: "destructive", title: "Error fetching profile", description: profileError.message });
           return false;
         }
 
-        // Handle blocked users
         if (profileData.role === 'blocked') {
-          // Sign out the user immediately
           await supabase.auth.signOut();
-          toast({
-            variant: "destructive",
-            title: "Account blocked",
-            description: "Your account has been blocked. Please contact an administrator.",
-          });
+          toast({ variant: "destructive", title: "Account blocked", description: "Your account has been blocked. Please contact an administrator." });
           return false;
         }
 
         setProfile(profileData as UserProfile);
-        
-        // Fetch user permissions
+
         const { data: permissionsData } = await supabase
           .from('user_permissions')
           .select('*')
           .eq('user_id', data.user.id);
-        
+
         let userPermissions = permissionsData as UserPermission[] || [];
-        
-        // If no permissions exist, create default permissions
+
         if (!userPermissions || userPermissions.length === 0) {
-          // Create default permissions for all managed tables
           const defaultPermissions = MANAGED_TABLES.map(table => ({
             user_id: data.user.id,
             table_name: table.name,
@@ -298,37 +227,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             can_edit: true,
             can_delete: true
           }));
-          
+
           if (defaultPermissions.length > 0) {
             await supabase.from('user_permissions').insert(defaultPermissions);
-            
-            // Re-fetch permissions after creating defaults
+
             const { data: refreshedPermissions } = await supabase
               .from('user_permissions')
               .select('*')
               .eq('user_id', data.user.id);
-              
+
             if (refreshedPermissions) {
               userPermissions = refreshedPermissions;
             }
           }
         }
-        
-        setPermissions(userPermissions);
 
-        toast({
-          title: "Logged in successfully",
-          description: `Welcome back, ${data.user.email}!`,
-        });
+        setPermissions(userPermissions);
+        toast({ title: "Logged in successfully", description: `Welcome back, ${data.user.email}!` });
         return true;
       }
       return false;
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login error",
-        description: error.message || "An unexpected error occurred.",
-      });
+      toast({ variant: "destructive", title: "Login error", description: error.message || "An unexpected error occurred." });
       return false;
     } finally {
       setIsLoading(false);
@@ -338,42 +258,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Clean up existing auth state first
       cleanupAuthState();
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            name
-          }
-        }
+        options: { data: { name } }
       });
 
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Sign up failed",
-          description: error.message,
-        });
+        toast({ variant: "destructive", title: "Sign up failed", description: error.message });
         return false;
       }
 
       if (data.user) {
-        // Fix: Use the correct format for sonner toast
-        sonnerToast.success("Account created", {
-          description: "Check your email for the confirmation link."
-        });
+        sonnerToast.success("Account created", { description: "Check your email for the confirmation link." });
         return true;
       }
       return false;
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign up error",
-        description: error.message || "An unexpected error occurred.",
-      });
+      toast({ variant: "destructive", title: "Sign up error", description: error.message || "An unexpected error occurred." });
       return false;
     } finally {
       setIsLoading(false);
@@ -382,44 +286,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Clean up auth state first
       cleanupAuthState();
-      
-      // Attempt global sign out
       await supabase.auth.signOut({ scope: 'global' });
-      
-      // Clear state
       setProfile(null);
       setPermissions([]);
-      
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
-      });
-      
-      // Force a page refresh after logout for a clean state
+      toast({ title: "Logged out", description: "You have been logged out successfully." });
       window.location.href = '/signin';
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message || "An unexpected error occurred.",
-      });
+      toast({ variant: "destructive", title: "Error signing out", description: error.message || "An unexpected error occurred." });
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      profile, 
-      permissions, 
+    <AuthContext.Provider value={{
+      user,
+      session,
+      profile,
+      permissions,
       isAdmin,
-      login, 
-      signup, 
-      logout, 
-      isLoading, 
-      fetchUserData 
+      login,
+      signup,
+      logout,
+      isLoading,
+      fetchUserData
     }}>
       {children}
     </AuthContext.Provider>
@@ -436,31 +325,22 @@ export const useAuth = () => {
 
 export const usePermission = (tableName: string) => {
   const { permissions, isAdmin, profile } = useAuth();
-  
-  // Admins have all permissions regardless of checkbox settings
+
   if (isAdmin) {
     return { canAdd: true, canEdit: true, canDelete: true };
   }
-  
-  // For regular users, check their specific permissions based on checkbox settings
-  const tablePermissions = permissions.find(p => 
+
+  const tablePermissions = permissions.find(p =>
     p.table_name.toLowerCase() === tableName.toLowerCase()
   );
-  
-  // If 'user' role, strictly enforce permissions based on checkbox settings
+
   if (profile?.role === 'user') {
-    // If no permissions found or permissions are unchecked, deny all actions
     return {
       canAdd: tablePermissions?.can_add || false,
       canEdit: tablePermissions?.can_edit || false,
       canDelete: tablePermissions?.can_delete || false
     };
   }
-  
-  // Default fallback - deny all if no matching permissions found
-  return {
-    canAdd: false,
-    canEdit: false,
-    canDelete: false
-  };
+
+  return { canAdd: false, canEdit: false, canDelete: false };
 };
