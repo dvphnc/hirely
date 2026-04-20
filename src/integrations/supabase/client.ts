@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://sglndmhreehyvslotves.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnbG5kbWhyZWVoeXZzbG90dmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2NDc4ODQsImV4cCI6MjA1OTIyMzg4NH0.sxCdTuxgFeTUsz8FreMXzXRlfITUEa5XUrTb8K7d7F8";
+const SUPABASE_URL = "https://vmqoyxhbvcuiesptnthg.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_N6xZ611IJFS6EL0xb54nWg_wlNWW9IL";
 
 const isBrowser = typeof window !== 'undefined';
 
