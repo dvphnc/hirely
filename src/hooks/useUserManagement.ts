@@ -3,24 +3,31 @@ import { useCallback } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserRole } from '@/context/auth-context';
+import { UserRole, useAuth } from '@/context/auth-context';
 
 export const useUserManagement = () => {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   // Fetch actual emails from auth.users table using edge function
   const { data: userEmails, isLoading: isLoadingEmails } = useQuery({
-    queryKey: ['user-emails'],
+    queryKey: ['user-emails', session?.user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-user-emails');
+      const token = session?.access_token;
+      const { data, error } = await supabase.functions.invoke('get-user-emails', {
+        headers: token ? {
+          Authorization: `Bearer ${token}`,
+        } : undefined,
+      });
       
       if (error) {
         console.error('Error fetching user emails:', error);
         throw error;
       }
       
-      return data as Record<string, string>;
+      return (data ?? {}) as Record<string, string>;
     },
+    enabled: !!session,
   });
 
   // Set a specific user to a regular user role

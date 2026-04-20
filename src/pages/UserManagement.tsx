@@ -125,7 +125,7 @@ const UserManagement = () => {
 
   // Fetch profiles with user emails
   const { data: users, isLoading } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", userEmails],
     queryFn: async () => {
       // Ensure we have a fresh session before making the request
       await refreshSession();
