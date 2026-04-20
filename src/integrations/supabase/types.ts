@@ -7,397 +7,23 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      customer: {
-        Row: {
-          address: string | null
-          custname: string | null
-          custno: string
-          payterm: string | null
-        }
-        Insert: {
-          address?: string | null
-          custname?: string | null
-          custno: string
-          payterm?: string | null
-        }
-        Update: {
-          address?: string | null
-          custname?: string | null
-          custno?: string
-          payterm?: string | null
-        }
-        Relationships: []
-      }
-      department: {
-        Row: {
-          deptcode: string
-          deptname: string | null
-          stamp: string | null
-          status: string | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          deptcode: string
-          deptname?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          deptcode?: string
-          deptname?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      employee: {
-        Row: {
-          birthdate: string | null
-          empno: string
-          firstname: string | null
-          gender: string | null
-          hiredate: string | null
-          lastname: string | null
-          sepdate: string | null
-          stamp: string | null
-          status: string | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          birthdate?: string | null
-          empno: string
-          firstname?: string | null
-          gender?: string | null
-          hiredate?: string | null
-          lastname?: string | null
-          sepdate?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          birthdate?: string | null
-          empno?: string
-          firstname?: string | null
-          gender?: string | null
-          hiredate?: string | null
-          lastname?: string | null
-          sepdate?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      job: {
-        Row: {
-          jobcode: string
-          jobdesc: string | null
-          stamp: string | null
-          status: string | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          jobcode: string
-          jobdesc?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          jobcode?: string
-          jobdesc?: string | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      jobhistory: {
-        Row: {
-          deptcode: string | null
-          effdate: string
-          empno: string
-          jobcode: string
-          salary: number | null
-          stamp: string | null
-          status: string | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          deptcode?: string | null
-          effdate: string
-          empno: string
-          jobcode: string
-          salary?: number | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          deptcode?: string | null
-          effdate?: string
-          empno?: string
-          jobcode?: string
-          salary?: number | null
-          stamp?: string | null
-          status?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "jobhistory_deptcode_fkey"
-            columns: ["deptcode"]
-            isOneToOne: false
-            referencedRelation: "department"
-            referencedColumns: ["deptcode"]
-          },
-          {
-            foreignKeyName: "jobhistory_empno_fkey"
-            columns: ["empno"]
-            isOneToOne: false
-            referencedRelation: "employee"
-            referencedColumns: ["empno"]
-          },
-          {
-            foreignKeyName: "jobhistory_jobcode_fkey"
-            columns: ["jobcode"]
-            isOneToOne: false
-            referencedRelation: "job"
-            referencedColumns: ["jobcode"]
-          },
-        ]
-      }
-      payment: {
-        Row: {
-          amount: number | null
-          orno: string
-          paydate: string | null
-          transno: string | null
-        }
-        Insert: {
-          amount?: number | null
-          orno: string
-          paydate?: string | null
-          transno?: string | null
-        }
-        Update: {
-          amount?: number | null
-          orno?: string
-          paydate?: string | null
-          transno?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_transno_fkey"
-            columns: ["transno"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["transno"]
-          },
-        ]
-      }
-      pricehist: {
-        Row: {
-          effdate: string
-          prodcode: string
-          unitprice: number | null
-        }
-        Insert: {
-          effdate: string
-          prodcode: string
-          unitprice?: number | null
-        }
-        Update: {
-          effdate?: string
-          prodcode?: string
-          unitprice?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pricehist_prodcode_fkey"
-            columns: ["prodcode"]
-            isOneToOne: false
-            referencedRelation: "product"
-            referencedColumns: ["prodcode"]
-          },
-        ]
-      }
-      product: {
-        Row: {
-          description: string | null
-          prodcode: string
-          unit: string | null
-        }
-        Insert: {
-          description?: string | null
-          prodcode: string
-          unit?: string | null
-        }
-        Update: {
-          description?: string | null
-          prodcode?: string
-          unit?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      sales: {
-        Row: {
-          custno: string | null
-          empno: string | null
-          salesdate: string | null
-          transno: string
-        }
-        Insert: {
-          custno?: string | null
-          empno?: string | null
-          salesdate?: string | null
-          transno: string
-        }
-        Update: {
-          custno?: string | null
-          empno?: string | null
-          salesdate?: string | null
-          transno?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_custno_fkey"
-            columns: ["custno"]
-            isOneToOne: false
-            referencedRelation: "customer"
-            referencedColumns: ["custno"]
-          },
-          {
-            foreignKeyName: "sales_empno_fkey"
-            columns: ["empno"]
-            isOneToOne: false
-            referencedRelation: "employee"
-            referencedColumns: ["empno"]
-          },
-        ]
-      }
-      salesdetail: {
-        Row: {
-          prodcode: string
-          quantity: number | null
-          transno: string
-        }
-        Insert: {
-          prodcode: string
-          quantity?: number | null
-          transno: string
-        }
-        Update: {
-          prodcode?: string
-          quantity?: number | null
-          transno?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "salesdetail_prodcode_fkey"
-            columns: ["prodcode"]
-            isOneToOne: false
-            referencedRelation: "product"
-            referencedColumns: ["prodcode"]
-          },
-          {
-            foreignKeyName: "salesdetail_transno_fkey"
-            columns: ["transno"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["transno"]
-          },
-        ]
-      }
-      user_permissions: {
-        Row: {
-          can_add: boolean
-          can_delete: boolean
-          can_edit: boolean
-          created_at: string
-          id: string
-          table_name: string
-          updated_at: string
-          updated_by: string | null
-          user_id: string
-        }
-        Insert: {
-          can_add?: boolean
-          can_delete?: boolean
-          can_edit?: boolean
-          created_at?: string
-          id?: string
-          table_name: string
-          updated_at?: string
-          updated_by?: string | null
-          user_id: string
-        }
-        Update: {
-          can_add?: boolean
-          can_delete?: boolean
-          can_edit?: boolean
-          created_at?: string
-          id?: string
-          table_name?: string
-          updated_at?: string
-          updated_by?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      user_role: "admin" | "user" | "blocked"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -405,21 +31,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -437,14 +67,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -460,14 +92,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -483,14 +117,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -498,22 +134,22 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
-    Enums: {
-      user_role: ["admin", "user", "blocked"],
-    },
+    Enums: {},
   },
 } as const
