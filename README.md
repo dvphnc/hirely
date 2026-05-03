@@ -178,8 +178,6 @@ Week 7        Dashboard, polish, QA, and documentation
 May 2025      Final submission and deployment
 ```
 
----
-
 <div align="center">
 
 ![wave](public/hirely-wave.svg)
