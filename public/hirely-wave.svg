@@ -1,16 +1,37 @@
-<svg width="900" height="120" viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+<svg width="900" height="80" viewBox="0 0 900 80" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.25"/>
-      <stop offset="50%"  stop-color="#c2185b" stop-opacity="0.20"/>
-      <stop offset="100%" stop-color="#f5a623" stop-opacity="0.25"/>
+      <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0"/>
+      <stop offset="25%"  stop-color="#c2185b" stop-opacity="0.28"/>
+      <stop offset="50%"  stop-color="#e8572a" stop-opacity="0.38"/>
+      <stop offset="75%"  stop-color="#f5a623" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#f5a623" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="waveGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   stop-color="#a78bfa" stop-opacity="0.15"/>
-      <stop offset="50%"  stop-color="#e8572a" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#ffd180" stop-opacity="0.15"/>
+      <stop offset="0%"   stop-color="#a78bfa" stop-opacity="0"/>
+      <stop offset="30%"  stop-color="#c2185b" stop-opacity="0.18"/>
+      <stop offset="70%"  stop-color="#e8572a" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffd180" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <path d="M0,20 C120,70 240,5 360,40 C480,75 600,10 720,45 C810,70 870,25 900,35 L900,120 L0,120 Z" fill="url(#waveGrad1)"/>
-  <path d="M0,50 C150,10 300,75 450,35 C600,0 750,60 900,25 L900,120 L0,120 Z" fill="url(#waveGrad2)"/>
+
+  <path fill="url(#waveGrad1)">
+    <animate attributeName="d" dur="7s" repeatCount="indefinite"
+      values="
+        M0,40 C150,10 300,70 450,40 C600,10 750,70 900,40 L900,80 L0,80 Z;
+        M0,40 C150,70 300,10 450,40 C600,70 750,10 900,40 L900,80 L0,80 Z;
+        M0,40 C150,10 300,70 450,40 C600,10 750,70 900,40 L900,80 L0,80 Z
+      "
+    />
+  </path>
+
+  <path fill="url(#waveGrad2)">
+    <animate attributeName="d" dur="9s" repeatCount="indefinite"
+      values="
+        M0,50 C200,20 400,70 600,50 C750,35 850,65 900,50 L900,80 L0,80 Z;
+        M0,50 C200,70 400,20 600,50 C750,65 850,35 900,50 L900,80 L0,80 Z;
+        M0,50 C200,20 400,70 600,50 C750,35 850,65 900,50 L900,80 L0,80 Z
+      "
+    />
+  </path>
 </svg>
