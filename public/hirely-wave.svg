@@ -1,11 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 70" width="900" height="70" preserveAspectRatio="none">
+<svg width="900" height="120" viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
   <defs>
-    <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%"   style="stop-color:#7c3aed;stop-opacity:0.22"/>
-      <stop offset="50%"  style="stop-color:#e8572a;stop-opacity:0.18"/>
-      <stop offset="100%" style="stop-color:#f5a623;stop-opacity:0.22"/>
+    <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.25"/>
+      <stop offset="50%"  stop-color="#c2185b" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#f5a623" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="waveGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#a78bfa" stop-opacity="0.15"/>
+      <stop offset="50%"  stop-color="#e8572a" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffd180" stop-opacity="0.15"/>
     </linearGradient>
   </defs>
-  <path d="M0,15 C150,55 300,0 450,28 C600,55 750,5 900,22 L900,70 L0,70 Z" fill="url(#wg)"/>
-  <path d="M0,35 C200,5 500,55 720,18 C820,2 870,42 900,28 L900,70 L0,70 Z" fill="url(#wg)" opacity="0.55"/>
+  <path d="M0,20 C120,70 240,5 360,40 C480,75 600,10 720,45 C810,70 870,25 900,35 L900,120 L0,120 Z" fill="url(#waveGrad1)"/>
+  <path d="M0,50 C150,10 300,75 450,35 C600,0 750,60 900,25 L900,120 L0,120 Z" fill="url(#waveGrad2)"/>
 </svg>
