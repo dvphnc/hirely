@@ -4,10 +4,13 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-hirewithhirely.vercel.app-7c3aed?style=flat-square&logo=vercel&logoColor=white)](https://hirewithhirely.vercel.app/)
-[![GitHub](https://img.shields.io/badge/GitHub-dvphnc%2Fhirely-4a0f2e?style=flat-square&logo=github&logoColor=white)](https://github.com/dvphnc/hirely)
-[![Made by](https://img.shields.io/badge/Made_by_Joana_Daphne_Sy-e8572a?style=flat-square&logoColor=white)](https://dvphnc.github.io)
-[![Status](https://img.shields.io/badge/Status_Live-f5a623?style=flat-square&logoColor=white)](https://hirewithhirely.vercel.app/)
+[![Laravel](https://img.shields.io/badge/Laravel-7c3aed?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com/)
+[![PHP](https://img.shields.io/badge/PHP-4a0f2e?style=flat-square&logo=php&logoColor=white)](https://php.net/)
+[![MySQL](https://img.shields.io/badge/MySQL-c2185b?style=flat-square&logo=mysql&logoColor=white)](https://mysql.com/)
+[![Figma](https://img.shields.io/badge/Figma-e8572a?style=flat-square&logo=figma&logoColor=white)](https://figma.com/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed_on_Vercel-f5a623?style=flat-square&logo=vercel&logoColor=white)](https://hirewithhirely.vercel.app/)
+[![Made by](https://img.shields.io/badge/Made_by_Joana_Daphne_Sy-4a0f2e?style=flat-square)](https://dvphnc.github.io)
+[![Live](https://img.shields.io/badge/Status_Live-7c3aed?style=flat-square)](https://hirewithhirely.vercel.app/)
 
 </div>
 
