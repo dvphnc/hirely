@@ -4,10 +4,10 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-hirewithhirely.vercel.app-667eea?style=flat-square&logo=vercel&logoColor=white)](https://hirewithhirely.vercel.app/)
-[![GitHub](https://img.shields.io/badge/GitHub-dvphnc%2Fhirely-1a1a2e?style=flat-square&logo=github&logoColor=white)](https://github.com/dvphnc/hirely)
-[![Made by](https://img.shields.io/badge/Made_by_Joana_Daphne_Sy-0d0d0d?style=flat-square)](https://dvphnc.github.io)
-[![Status](https://img.shields.io/badge/Status_Live-667eea?style=flat-square)](https://hirewithhirely.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-hirewithhirely.vercel.app-7c3aed?style=flat-square&logo=vercel&logoColor=white)](https://hirewithhirely.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-dvphnc%2Fhirely-4a0f2e?style=flat-square&logo=github&logoColor=white)](https://github.com/dvphnc/hirely)
+[![Made by](https://img.shields.io/badge/Made_by_Joana_Daphne_Sy-e8572a?style=flat-square&logoColor=white)](https://dvphnc.github.io)
+[![Status](https://img.shields.io/badge/Status_Live-f5a623?style=flat-square&logoColor=white)](https://hirewithhirely.vercel.app/)
 
 </div>
 
