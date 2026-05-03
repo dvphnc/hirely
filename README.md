@@ -179,7 +179,7 @@ May 2025      Final submission and deployment
 
 <div align="center">
 
-![wave](public/hirely-wave.svg)
+
 
 <sub>© 2025 HIRELY by Joana Daphne Sy.<br/>All Rights Reserved.</sub>
 
